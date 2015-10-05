@@ -37,7 +37,11 @@
 #include <OGRE/OgreRenderTargetListener.h>
 #include <OGRE/OgrePrerequisites.h>
 #include <OgreVector3.h>
+#include <OgreHardwarePixelBuffer.h>
 #include <OgreQuaternion.h>
+#include <OgreRectangle2D.h>
+#include <OgreTexture.h>
+#include <sensor_msgs/Image.h>
 
 #include <rvinci_input_msg/rvinci_input.h>
 
@@ -124,6 +128,8 @@ private:
    * input position. Updates cursor position then sends data to camera control and cursor publisher.
    */
   void inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input);
+  void leftCallback(const sensor_msgs::ImageConstPtr& img);
+  void rightCallback(const sensor_msgs::ImageConstPtr& img);
   //!Publishes cursor position and grip state to interaction cursor 3D display type.
   void publishCursorUpdate(int grab[2]);
   //!Logic for grip state, used in interaction cursor 3D display type.
@@ -131,9 +137,21 @@ private:
   bool camera_mode_, clutch_mode_;
   bool prev_grab_[2];
 
+
+  static Ogre::uint32 const LEFT_VIEW = 1;
+  static Ogre::uint32 const RIGHT_VIEW = 2;
+
   Ogre::Camera* camera_[2];
   Ogre::SceneNode *camera_node_;
   Ogre::SceneNode *target_node_;
+  Ogre::SceneNode *image_node_;
+
+  unsigned char* buffer_[2];
+  Ogre::Image* backgroundImage_[2];
+  Ogre::MaterialPtr material_[2];
+  Ogre::TexturePtr texture_[2];
+  Ogre::Rectangle2D* rect_[2];
+
   Ogre::Viewport *viewport_[2];
   Ogre::RenderWindow *window_;
 
@@ -148,6 +166,8 @@ private:
 
   ros::NodeHandle nh_;
   ros::Subscriber subscriber_input_;
+  ros::Subscriber subscriber_lcam_;
+  ros::Subscriber subscriber_rcam_;
   ros::Publisher publisher_rhcursor_;
   ros::Publisher publisher_lhcursor_;
   ros::Publisher pub_robot_state_[2];
