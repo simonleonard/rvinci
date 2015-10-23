@@ -69,11 +69,14 @@
 namespace rvinci
 {
 rvinciDisplay::rvinciDisplay()
-  : render_widget_(0)
-  , camera_node_(0)
-  , window_(0)
+  :// render_widget_(0),
+  camera_node_(0)
   , camera_offset_(0.0,-3.0,1.5)
 {
+  render_widget_[0] = NULL;
+  render_widget_[1] = NULL;
+  window_[0] = NULL;
+  window_[1] = NULL;
   std::string rviz_path = ros::package::getPath(ROS_PACKAGE_NAME);
   Ogre::ResourceGroupManager::getSingleton().addResourceLocation( rviz_path + "/ogre_media", "FileSystem", ROS_PACKAGE_NAME );
   Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup(ROS_PACKAGE_NAME);
@@ -118,7 +121,7 @@ rvinciDisplay::~rvinciDisplay()
   {
     if (viewport_[i])
    {
-      window_->removeViewport(0);
+      window_[0]->removeViewport(0);
       viewport_[i] = 0;
     }
 
@@ -135,8 +138,10 @@ rvinciDisplay::~rvinciDisplay()
     scene_manager_->destroySceneNode(camera_node_);
     camera_node_ = 0;
   }
-  window_ = 0;
-  delete render_widget_;
+  window_[0] = 0;
+  window_[1] = 0;
+  delete render_widget_[0];
+  delete render_widget_[1];
 //  delete prop_manual_coords_;
   delete prop_cam_focus_;
   delete prop_camera_posit_;
@@ -144,16 +149,26 @@ rvinciDisplay::~rvinciDisplay()
 }
 void rvinciDisplay::onInitialize()
 {
-  render_widget_ = new rviz::RenderWidget(rviz::RenderSystem::get());
-  render_widget_->setVisible(false);
-  render_widget_->setWindowTitle("RVinci");
-  render_widget_->resize(3360,1050);
-  render_widget_->show();
-  render_widget_->setWindowFlags(Qt::WindowSystemMenuHint | Qt::WindowTitleHint);
-  window_ = render_widget_->getRenderWindow();
-  window_->setVisible(false);
-  window_->setAutoUpdated(false);
-  window_->addListener(this);
+  render_widget_[0] = new rviz::RenderWidget(rviz::RenderSystem::get());
+  render_widget_[0]->setVisible(false);
+  render_widget_[0]->setWindowTitle("RVinci");
+  render_widget_[0]->resize(3360/2,1050);
+  render_widget_[0]->show();
+  render_widget_[0]->setWindowFlags(Qt::WindowSystemMenuHint | Qt::WindowTitleHint);
+  window_[0] = render_widget_[0]->getRenderWindow();
+  window_[0]->setVisible(false);
+  window_[0]->setAutoUpdated(false);
+  window_[0]->addListener(this);
+  render_widget_[1] = new rviz::RenderWidget(rviz::RenderSystem::get());
+  render_widget_[1]->setVisible(false);
+  render_widget_[1]->setWindowTitle("RVinci");
+  render_widget_[1]->resize(3360/2,1050);
+  render_widget_[1]->show();
+  render_widget_[1]->setWindowFlags(Qt::WindowSystemMenuHint | Qt::WindowTitleHint);
+  window_[1] = render_widget_[0]->getRenderWindow();
+  window_[1]->setVisible(false);
+  window_[1]->setAutoUpdated(false);
+  window_[1]->addListener(this);
   camera_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode();
   target_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode();
   image_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode("Background");
@@ -178,8 +193,10 @@ void rvinciDisplay::update(float wall_dt, float ros_dt)
   }
 
   cameraUpdate();
-  window_ = render_widget_->getRenderWindow();
-  window_->update(false);
+  window_[0] = render_widget_[0]->getRenderWindow();
+  window_[1] = render_widget_[1]->getRenderWindow();
+  window_[0]->update(false);
+  window_[1]->update(false);
 }
 
 //void rvinciDisplay::reset(){}
@@ -193,7 +210,6 @@ void rvinciDisplay::pubsubSetup()
   publisher_lhcursor_ = nh_.advertise<interaction_cursor_msgs::InteractionCursorUpdate>("rvinci_cursor_left/update",10);
   pub_robot_state_[_LEFT] = nh_.advertise<std_msgs::String>("dvrk_mtml/set_robot_state",10);
   pub_robot_state_[_RIGHT] = nh_.advertise<std_msgs::String>("dvrk_mtmr/set_robot_state",10);
-
 }
 
   void rvinciDisplay::leftCallback(const sensor_msgs::ImageConstPtr& img){
@@ -436,13 +452,14 @@ int rvinciDisplay::getaGrip(bool grab, int i)
 void rvinciDisplay::cameraSetup()
 {
   Ogre::ColourValue bg_color = context_->getViewManager()->getRenderPanel()->getViewport()->getBackgroundColour();
-  window_ = render_widget_->getRenderWindow();
+  window_[0] = render_widget_[0]->getRenderWindow();
+  window_[1] = render_widget_[1]->getRenderWindow();
   camera_[_LEFT] = scene_manager_->createCamera("Left Camera");
   camera_[_RIGHT] = scene_manager_->createCamera("Right Camera");
   for(int i = 0; i<2; ++i)
     {
       camera_node_->attachObject(camera_[i]);
-      viewport_[i] = window_->addViewport(camera_[i],i,0.5f*i,0.0f,0.5f,1.0f);//,0,0.5f,0,0.5f,1.0f);
+      viewport_[i] = window_[i]->addViewport(camera_[i],0, 0.0f, 0.0f, 1.0f, 1.0f);//,0,0.5f,0,0.5f,1.0f);
       viewport_[i]->setBackgroundColour(bg_color);
     }
   
@@ -487,8 +504,6 @@ void rvinciDisplay::cameraUpdate()
     }*/
   if(camera_mode_)
   {
-
- 
       Ogre::Vector3 newvect = input_pos_[_LEFT] - input_pos_[_RIGHT];
       newvect.normalise();
       Ogre::Quaternion camrot  = initial_cvect_.getRotationTo(newvect);
@@ -502,7 +517,7 @@ void rvinciDisplay::cameraUpdate()
       property_camrot_->setQuaternion(camera_[_LEFT]->getRealOrientation());
       prop_camera_posit_->setVector(camera_pos_ + property_camrot_->getQuaternion()*camera_[_LEFT]->getPosition());
       prop_cam_focus_->setVector(camera_node_->getPosition());
-}
+  }
 }
 void rvinciDisplay::preRenderTargetUpdate(const Ogre::RenderTargetEvent& evt)
 {
@@ -510,8 +525,10 @@ cameraUpdate();
 }
 void rvinciDisplay::postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt)
 {
-  window_ = render_widget_->getRenderWindow();
-  window_->swapBuffers();
+  window_[0] = render_widget_[0]->getRenderWindow();
+  window_[0]->swapBuffers();
+  window_[1] = render_widget_[1]->getRenderWindow();
+  window_[1]->swapBuffers();
 }
 void rvinciDisplay::onEnable()
 {
@@ -519,12 +536,14 @@ void rvinciDisplay::onEnable()
   {
   cameraSetup();
   }
-  render_widget_->setVisible(true);
+  render_widget_[0]->setVisible(true);
+  render_widget_[1]->setVisible(true);
   cameraReset();
 }
 void rvinciDisplay::onDisable()
 {
-  render_widget_ ->setVisible(false);
+  render_widget_[0] ->setVisible(false);
+  render_widget_[1] ->setVisible(false);
 }
 
 }//namespace rvinci

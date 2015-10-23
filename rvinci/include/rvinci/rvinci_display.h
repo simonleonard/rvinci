@@ -153,7 +153,7 @@ private:
   Ogre::Rectangle2D* rect_[2];
 
   Ogre::Viewport *viewport_[2];
-  Ogre::RenderWindow *window_;
+  Ogre::RenderWindow *window_[2];
 
   Ogre::Vector3 initial_cvect_;
   Ogre::Vector3 camera_ipd_;
@@ -181,7 +181,7 @@ private:
   rviz::BoolProperty *prop_gravity_comp_;
   rviz::BoolProperty *prop_cam_reset_;
 
-  rviz::RenderWidget *render_widget_;
+  rviz::RenderWidget *render_widget_[2];
 
   geometry_msgs::Pose cursor_[2];
 
