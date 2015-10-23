@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <rvinci_input_msg/rvinci_input.h>
 #include <geometry_msgs/Wrench.h>
+#include <std_msgs/Bool.h>
 #include <cmath>
 #include <tf/transform_datatypes.h>
 class dvrk_wrench
@@ -15,6 +16,7 @@ private:
   ros::NodeHandle n;
   ros::Subscriber rvinci_sub;
   ros::Publisher dvrk_pub[2];
+  ros::Publisher pub_orientation_[2], pub_lock_[2];
   double strength_[2]; //current and previous
   double torqmag_[2];
   double torqmago_[2];
@@ -27,32 +29,48 @@ dvrk_wrench::dvrk_wrench()
   rvinci_sub = n.subscribe<rvinci_input_msg::rvinci_input>("/rvinci_input_update",10,&dvrk_wrench::inputCallback,this);
   dvrk_pub[0] = n.advertise<geometry_msgs::Wrench>("/dvrk_mtml/set_wrench_body",10);
   dvrk_pub[1] = n.advertise<geometry_msgs::Wrench>("/dvrk_mtmr/set_wrench_body",10);
+
+  pub_orientation_[0] = n.advertise<geometry_msgs::Quaternion>("/dvrk_mtml/desired_orientation",10);
+  pub_orientation_[1] = n.advertise<geometry_msgs::Quaternion>("/dvrk_mtmr/desired_orientation",10);
+  pub_lock_[0] = n.advertise<std_msgs::Bool>("/dvrk_mtml/enable_rpy_pid",10);
+  pub_lock_[1] = n.advertise<std_msgs::Bool>("/dvrk_mtmr/enable_rpy_pid",10);
+
 }
 void dvrk_wrench::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input)
 {
   tf::Vector3 curvect = getVector(*r_input);
- // if (checkLimits(*r_input))
- // {
-    tf::Transform tfT[2];
-    for (int i = 0; i<2; ++i)
+  tf::Transform tfT[2];
+  for (int i = 0; i<2; ++i)
     {
       tf::Quaternion tfq;
       tf::quaternionMsgToTF(r_input->gripper[i].pose.orientation,tfq); 
       tfT[i] = tf::Transform(tfq.inverse());
     }
+  if(!r_input->camera){
+      std_msgs::Bool lock;
+      lock.data = false;
+      pub_lock_[0].publish( lock );
+      pub_lock_[1].publish( lock );
+  }
   if(!r_input->camera && curvect.length() >  0.12)
-  {
-  vector_magnitude_ = curvect.length();
-  publishWrench(curvect,vector_magnitude_, tfT);
-  }
+    {
+      vector_magnitude_ = curvect.length();
+      publishWrench(curvect,vector_magnitude_, tfT);
+    }
   else
-  {
-    double curmag = curvect.length();
-    curvect.normalize();
-    publishWrench(curvect,curmag, tfT);
-  }
- // }
+    {
+      double curmag = curvect.length();
+      curvect.normalize();
+      publishWrench(curvect,curmag, tfT);
+      pub_orientation_[0].publish( r_input->orientation[0] );
+      pub_orientation_[1].publish( r_input->orientation[1] );
+      std_msgs::Bool lock;
+      lock.data = true;
+      pub_lock_[0].publish( lock );
+      pub_lock_[1].publish( lock );
+    }
 }
+
 tf::Vector3 dvrk_wrench::getVector(const rvinci_input_msg::rvinci_input rinput)
 {
 //  geometry_msgs::Vector3 vector;

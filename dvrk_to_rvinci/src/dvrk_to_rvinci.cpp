@@ -48,6 +48,8 @@ void davinci_mtm::getPose(const geometry_msgs::Pose::ConstPtr& pose, int i)
   rvmsg_.gripper[i].pose.position.x += (2*i-1)*0.15;
   rvmsg_.gripper[i].pose.position.y += 0.36;
   rvmsg_.gripper[i].pose.position.z += 0.135;
+  if( !rvmsg_.camera )
+    { rvmsg_.orientation[i] = pose->orientation; }
 }
 void davinci_mtm::gripCallback(const std_msgs::Bool::ConstPtr& grab, int i)
 {
