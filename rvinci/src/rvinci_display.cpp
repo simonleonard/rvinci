@@ -191,8 +191,8 @@ void rvinciDisplay::pubsubSetup()
   subscriber_rcam_ = nh_.subscribe<sensor_msgs::Image>( "/stereo/right/image_color", 10, boost::bind(&rvinciDisplay::rightCallback,this,_1));
   publisher_rhcursor_ = nh_.advertise<interaction_cursor_msgs::InteractionCursorUpdate>("rvinci_cursor_right/update",10);
   publisher_lhcursor_ = nh_.advertise<interaction_cursor_msgs::InteractionCursorUpdate>("rvinci_cursor_left/update",10);
-  pub_robot_state_[_LEFT] = nh_.advertise<std_msgs::String>("dvrk_mtml/set_robot_state",10);
-  pub_robot_state_[_RIGHT] = nh_.advertise<std_msgs::String>("dvrk_mtmr/set_robot_state",10);
+  pub_robot_state_[_LEFT] = nh_.advertise<std_msgs::String>("/dvrk/MTML/set_robot_state",10);
+  pub_robot_state_[_RIGHT] = nh_.advertise<std_msgs::String>("/dvrk/MTMR/set_robot_state",10);
 
 }
 

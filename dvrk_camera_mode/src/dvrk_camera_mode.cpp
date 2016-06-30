@@ -25,8 +25,8 @@ private:
 dvrk_wrench::dvrk_wrench()
 {
   rvinci_sub = n.subscribe<rvinci_input_msg::rvinci_input>("/rvinci_input_update",10,&dvrk_wrench::inputCallback,this);
-  dvrk_pub[0] = n.advertise<geometry_msgs::Wrench>("/dvrk_mtml/set_wrench_body",10);
-  dvrk_pub[1] = n.advertise<geometry_msgs::Wrench>("/dvrk_mtmr/set_wrench_body",10);
+  dvrk_pub[0] = n.advertise<geometry_msgs::Wrench>("/dvrk/MTML/set_wrench_body",10);
+  dvrk_pub[1] = n.advertise<geometry_msgs::Wrench>("/dvrk/MTMR/set_wrench_body",10);
 }
 void dvrk_wrench::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input)
 {
@@ -73,7 +73,7 @@ void dvrk_wrench::publishWrench(const tf::Vector3 vector, double magnitude, tf::
   strength_[0] = vector_magnitude_ - magnitude;
   double dt = r_->cycleTime().toSec();
   double strengthd = (strength_[0] - strength_[1])/dt;
-  double PD = 175*strength_[0] + 0.25*strengthd;
+  double PD = 50*strength_[0] + 0.00*strengthd;
   //std::cout << strength_[0] << std::endl;
 
   //normalise, scale, and publish
