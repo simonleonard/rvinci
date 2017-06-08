@@ -1,7 +1,9 @@
 <launch>
 
-  <include file="$(find dvrk_robot)/launch/test_dvrk_full.launch"/>
-
+  <!--
+  <include file="$(find dvrk_robot)/launch/dvrk_arm_rviz.launch"
+	   args=" arm:=MTML arm:=MTMR config:=/home/sleonar7/catkin_ws/share/jhu-daVinci/console-MTML-MTMR.json"/>
+  -->
   <node name="basic_controls" type="basic_controls" pkg="interactive_marker_tutorials" />
   <node name="dvrk_to_rvinci" type="dvrk_to_rvinci" pkg="dvrk_to_rvinci" />
   <node name="dvrk_camera_mode" type="dvrk_camera_mode" pkg="dvrk_camera_mode"/>
