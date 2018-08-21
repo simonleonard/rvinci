@@ -29,11 +29,14 @@
 #include <string>
 #include <iostream>
 
+
 #include <QWidget>
 #include <QDesktopWidget>
 #include <QApplication>
 
 #include <boost/bind.hpp>
+#include <interaction_cursor_msgs/InteractionCursorUpdate.h>
+
 
 #include <OGRE/OgreRoot.h>
 #include <OGRE/OgreSceneNode.h>
@@ -57,10 +60,12 @@
 #include <rviz/ogre_helpers/render_system.h>
 #include <rviz/frame_manager.h>
 
-#include <interaction_cursor_msgs/InteractionCursorUpdate.h>
+
 #include <rvinci_input_msg/rvinci_input.h>
 #include <std_msgs/String.h>
+//#endif
 #include "rvinci/rvinci_display.h"
+
 
 #define _LEFT 0
 #define _RIGHT 1
@@ -73,6 +78,8 @@ rvinciDisplay::rvinciDisplay()
 , window_(0)
 , camera_offset_(0.0,-3.0,1.5)
 {
+  std::cout << "rvinci" << std::endl;
+
   std::string rviz_path = ros::package::getPath(ROS_PACKAGE_NAME);
   Ogre::ResourceGroupManager::getSingleton().addResourceLocation( rviz_path + "/ogre_media", "FileSystem", ROS_PACKAGE_NAME );
   Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup(ROS_PACKAGE_NAME);
@@ -98,6 +105,7 @@ rvinciDisplay::rvinciDisplay()
  camera_[_LEFT] = 0;
  camera_[_RIGHT]= 0;
  camera_ipd_ = Ogre::Vector3(0.03,0.0,0.0);
+
 }
 rvinciDisplay::~rvinciDisplay()
 {
@@ -158,8 +166,8 @@ void rvinciDisplay::pubsubSetup()
   subscriber_input_ = nh_.subscribe<rvinci_input_msg::rvinci_input>(subtopic, 10, boost::bind(&rvinciDisplay::inputCallback,this,_1));
   publisher_rhcursor_ = nh_.advertise<interaction_cursor_msgs::InteractionCursorUpdate>("rvinci_cursor_right/update",10);
   publisher_lhcursor_ = nh_.advertise<interaction_cursor_msgs::InteractionCursorUpdate>("rvinci_cursor_left/update",10);
-  pub_robot_state_[_LEFT] = nh_.advertise<std_msgs::String>("dvrk_mtml/set_robot_state",10);
-  pub_robot_state_[_RIGHT] = nh_.advertise<std_msgs::String>("dvrk_mtmr/set_robot_state",10);
+  pub_robot_state_[_LEFT] = nh_.advertise<std_msgs::String>("dvrk/MTML/set_robot_state",10);
+  pub_robot_state_[_RIGHT] = nh_.advertise<std_msgs::String>("dvrk/MTMR/set_robot_state",10);
 }
 void rvinciDisplay::gravityCompensation()
 {
@@ -177,6 +185,7 @@ void rvinciDisplay::gravityCompensation()
 }
 void rvinciDisplay::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input)
 {
+
    Ogre::Quaternion orshift(0,0,-sqrt(0.5),sqrt(0.5));//shifts incoming davinci orientation into world frame
    orshift=orshift* Ogre::Quaternion(0,0,1,0);
    Ogre::Quaternion inori[2];
@@ -191,11 +200,11 @@ void rvinciDisplay::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr
     for (int i = 0; i<2; ++i) //getting absolute and delta position of grippers, for use in cam and cursor.
     {
       Ogre::Vector3 old_input = input_pos_[i];
-      geometry_msgs::Pose pose = r_input->gripper[i].pose;
+      geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
 
-      input_pos_[i] = Ogre::Vector3(pose.position.x, pose.position.y, pose.position.z);// + cursor_offset_[i];
+      input_pos_[i] = Ogre::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);// + cursor_offset_[i];
       input_pos_[i]*=prop_input_scalar_->getVector();
-      inori[i] = Ogre::Quaternion(pose.orientation.w,pose.orientation.x,pose.orientation.y,pose.orientation.z);
+      inori[i] = Ogre::Quaternion(pose.pose.orientation.w,pose.pose.orientation.x,pose.pose.orientation.y,pose.pose.orientation.z);
       inori[i]= camor*(orshift*inori[i]);
 
       input_change_[i] = camor*(input_pos_[i] - old_input);
@@ -245,6 +254,19 @@ void rvinciDisplay::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr
         cursor_[i].orientation.y = inori[i].y;
         cursor_[i].orientation.z = inori[i].z;
         cursor_[i].orientation.w = inori[i].w;
+
+        // A Naive Try to Fix the camera bug
+        /*
+        geometry_msgs::Pose tmp_davinci;
+        tmp_davinci.position.y =  cursor_[i].position.y;
+        cursor_[i].position.y = cursor_[i].position.z;
+        cursor_[i].position.z = tmp_davinci.position.y;
+        tmp_davinci.orientation.y = cursor_[i].orientation.y;
+        cursor_[i].orientation.y = cursor_[i].orientation.z;
+        cursor_[i].orientation.z = tmp_davinci.orientation.y;
+        */
+
+
         grab[i] = 0;
       }
         prop_cam_focus_->setVector(input_pos_[_RIGHT]);
@@ -255,8 +277,8 @@ void rvinciDisplay::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr
   {
     for(int i = 0; i<2; ++i)
     {
-      geometry_msgs::Pose pose = r_input->gripper[i].pose;
-      input_pos_[i] = Ogre::Vector3(pose.position.x, pose.position.y, pose.position.z);// + cursor_offset_[i];
+      geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
+      input_pos_[i] = Ogre::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);// + cursor_offset_[i];
       input_pos_[i]*= prop_input_scalar_->getVector();
       initial_cvect_ = (input_pos_[_LEFT] - input_pos_[_RIGHT]);
       initial_cvect_.normalise();
@@ -356,14 +378,18 @@ void rvinciDisplay::cameraUpdate()
   if(camera_mode_)
   {
 
- 
+
+      std::cout << "HERE" << std::endl;
+
       Ogre::Vector3 newvect = input_pos_[_LEFT] - input_pos_[_RIGHT];
       newvect.normalise();
       Ogre::Quaternion camrot  = initial_cvect_.getRotationTo(newvect);
 
       camera_pos_ = Ogre::Vector3(camera_pos_ - ((input_change_[_RIGHT] + input_change_[_LEFT])));
       camera_node_->setOrientation(camera_node_->getOrientation()*camrot.Inverse());
+      //camera_node_->setOrientation(camera_node_->getOrientation());
       camera_node_->setPosition(camera_pos_);
+  
 
       initial_cvect_ = newvect;
 

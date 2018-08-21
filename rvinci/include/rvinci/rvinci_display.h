@@ -30,9 +30,12 @@
 #ifndef RVINCI_DISPLAY_H
 #define RVINCI_DISPLAY_H
 
-#include "rviz/display.h"
-
+//#ifndef Q_MOC_RUN
 #include <QObject>
+
+//#ifndef Q_MOC_RUN
+
+#include "rviz/display.h"
 #include <ros/ros.h>
 #include <OGRE/OgreRenderTargetListener.h>
 #include <OGRE/OgrePrerequisites.h>
@@ -40,6 +43,7 @@
 #include <OgreQuaternion.h>
 
 #include <rvinci_input_msg/rvinci_input.h>
+#endif
 
 namespace Ogre
 {
@@ -169,5 +173,5 @@ private:
 
 } // namespace rvinci
 
-#endif
+//#endif
 

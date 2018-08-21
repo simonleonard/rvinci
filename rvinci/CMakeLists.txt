@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 2.8.3)
 project(rvinci)
 
 # Qt
-find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
-include(${QT_USE_FILE})
+find_package(Qt5Core)
+find_package(Qt5Widgets)
+find_package(Qt5Gui)
+#include(${QT_USE_FILE})
 add_definitions(-DQT_NO_KEYWORDS -fPIC)
 
 # Catkin
@@ -11,7 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   rviz
   roscpp
   rvinci_input_msg
-)
+  interaction_cursor_msgs
+  )
 
 # Boost
 find_package(Boost REQUIRED)
@@ -27,13 +30,13 @@ pkg_check_modules(OGRE OGRE)
 
 include_directories(include
   ${catkin_INCLUDE_DIRS}
-#  ${OculusSDK_INCLUDE_DIRS}
   ${OGRE_INCLUDE_DIRS}
   ${BOOST_INCLUDE_DIRS}
-)
+  ${Qt5Widgets_INCLUDE_DIRS}
+  )
 
 # run Qt moc generator
-qt4_wrap_cpp(MOC_FILES
+qt5_wrap_cpp(MOC_FILES
   include/${PROJECT_NAME}/rvinci_display.h
 )
 

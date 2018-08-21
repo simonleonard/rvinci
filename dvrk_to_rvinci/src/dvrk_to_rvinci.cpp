@@ -1,7 +1,9 @@
 #include <ros/ros.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <rvinci_input_msg/rvinci_input.h>
 #include <std_msgs/Bool.h>
+#include <sensor_msgs/Joy.h>
 
 class davinci_mtm
 {
@@ -9,11 +11,14 @@ public:
     davinci_mtm();
   ros::Publisher  rvinci_pub_;
   rvinci_input_msg::rvinci_input rvmsg_;
-  void getPose(const geometry_msgs::Pose::ConstPtr&, int);
+  void getPose(const geometry_msgs::PoseStamped::ConstPtr&, int);
   void gripCallback(const std_msgs::Bool::ConstPtr& grip, int);
   void getaGrip();
   void cameraCallback(const std_msgs::Bool::ConstPtr& cam);
   void clutchCallback(const std_msgs::Bool::ConstPtr& cltch);
+
+  void cameraTestCallback(const sensor_msgs::Joy::ConstPtr& cam);
+  void clutchTestCallback(const sensor_msgs::Joy::ConstPtr& cltch);
 private:
 
   ros::NodeHandle n;
@@ -24,43 +29,88 @@ private:
   ros::Subscriber camera_sub_;
   ros::Subscriber clutch_sub_;
 
+  ros::Subscriber camera_sub_test;
+  ros::Subscriber clutch_sub_test;
+
 };
 
 davinci_mtm::davinci_mtm()
 {
   rvmsg_.header.frame_id = "/base_link";
-  left_grip_sub_ = n.subscribe<std_msgs::Bool>("/dvrk_mtml/gripper_closed_event",10,boost::bind(&davinci_mtm::gripCallback,this,_1,0));
-  right_grip_sub_ = n.subscribe<std_msgs::Bool>("/dvrk_mtmr/gripper_closed_event",10,boost::bind(&davinci_mtm::gripCallback,this,_1,1));
-  left_pose_sub_ = n.subscribe<geometry_msgs::Pose>("/dvrk_mtml/position_cartesian_current",10,boost::bind(&davinci_mtm::getPose,this,_1,0));
-  right_pose_sub_ = n.subscribe<geometry_msgs::Pose>("/dvrk_mtmr/position_cartesian_current",10,boost::bind(&davinci_mtm::getPose,this,_1,1));
+  left_grip_sub_ = n.subscribe<std_msgs::Bool>("/dvrk/MTML/gripper_closed_event",10,boost::bind(&davinci_mtm::gripCallback,this,_1,0));
+  right_grip_sub_ = n.subscribe<std_msgs::Bool>("/dvrk/MTMR/gripper_closed_event",10,boost::bind(&davinci_mtm::gripCallback,this,_1,1));
+  left_pose_sub_ = n.subscribe<geometry_msgs::PoseStamped>("/dvrk/MTML/position_cartesian_current",10,boost::bind(&davinci_mtm::getPose,this,_1,0));
+  right_pose_sub_ = n.subscribe<geometry_msgs::PoseStamped>("/dvrk/MTMR/position_cartesian_current",10,boost::bind(&davinci_mtm::getPose,this,_1,1));
   rvinci_pub_ = n.advertise<rvinci_input_msg::rvinci_input>("/rvinci_input_update",10);
 
-  camera_sub_ = n.subscribe<std_msgs::Bool>("/dvrk_footpedal/camera",10,&davinci_mtm::cameraCallback,this);
-  clutch_sub_ = n.subscribe<std_msgs::Bool>("/dvrk_footpedal/clutch",10,&davinci_mtm::clutchCallback,this);
+  //camera_sub_ = n.subscribe<std_msgs::Bool>("/dvrk/footpedals/camera",10,&davinci_mtm::cameraCallback,this);
+  //clutch_sub_ = n.subscribe<std_msgs::Bool>("/dvrk/footpedals/clutch",10,&davinci_mtm::clutchCallback,this);
+  
+  camera_sub_test = n.subscribe<sensor_msgs::Joy>("/dvrk/footpedals/camera",10,&davinci_mtm::cameraTestCallback,this);
+  clutch_sub_ = n.subscribe<sensor_msgs::Joy>("/dvrk/footpedals/clutch",10,&davinci_mtm::clutchTestCallback,this);
 }
 //constructor creates marker that is used as a visualization for the 3D cursor and establishes
 //pubs and subs for controller positon and button states.
 
-void davinci_mtm::getPose(const geometry_msgs::Pose::ConstPtr& pose, int i)
+void davinci_mtm::getPose(const geometry_msgs::PoseStamped::ConstPtr& pose, int i)
 {
+  //std::cout << "getPose " << i << std::endl;
   rvmsg_.gripper[i].pose = *pose;
   //Offsets to set davinci at 0 x and y, with an x offset for each gripper.
-  rvmsg_.gripper[i].pose.position.x += (2*i-1)*0.15;
-  rvmsg_.gripper[i].pose.position.y += 0.36;
-  rvmsg_.gripper[i].pose.position.z += 0.135;
+  rvmsg_.gripper[i].pose.pose.position.x += (2*i-1)*0.15;
+  rvmsg_.gripper[i].pose.pose.position.y += 0.36;
+  rvmsg_.gripper[i].pose.pose.position.z += 0.135;
+  
+  // Moving In Wrong Direction
+  geometry_msgs::Pose tmp_davinci;
+  rvmsg_.gripper[i].pose.pose.position.x = -rvmsg_.gripper[i].pose.pose.position.x;
+  tmp_davinci.position.y = rvmsg_.gripper[i].pose.pose.position.y;
+  rvmsg_.gripper[i].pose.pose.position.y = rvmsg_.gripper[i].pose.pose.position.z;
+  rvmsg_.gripper[i].pose.pose.position.z = tmp_davinci.position.y;
+
+  //std::cout << "POSE " << rvmsg_.gripper[i].pose << std::endl;
+  //std::cout << i << std::endl;
 }
 void davinci_mtm::gripCallback(const std_msgs::Bool::ConstPtr& grab, int i)
 {
  rvmsg_.gripper[i].grab = grab->data;
 }
+/*
 void davinci_mtm::cameraCallback(const std_msgs::Bool::ConstPtr& cam)
 {
   rvmsg_.camera = cam->data;
+  std::cout << "Camera" << std::endl;
+}*/
+
+void davinci_mtm::cameraTestCallback(const sensor_msgs::Joy::ConstPtr& cam)
+{
+  //rvmsg_.camera = cam->buttons;
+  int tmp = cam->buttons[0];
+  if(tmp != 0)
+    rvmsg_.camera = 1;
+  else
+    rvmsg_.camera = 0;
+
+  std::cout << "Camera " << int(rvmsg_.camera) << std::endl;
 }
-void davinci_mtm::clutchCallback(const std_msgs::Bool::ConstPtr& cltch)
+
+/*void davinci_mtm::clutchCallback(const std_msgs::Bool::ConstPtr& cltch)
 {
   rvmsg_.clutch = cltch->data;
+} */
+
+void davinci_mtm::clutchTestCallback(const sensor_msgs::Joy::ConstPtr& cltch)
+{
+  //rvmsg_.clutch = cltch->buttons;
+  int tmp = cltch->buttons[0];
+  if(tmp != 0)
+    rvmsg_.clutch = true;
+  else
+    rvmsg_.clutch = false;
+
+  std::cout << "Clutch " << int(rvmsg_.clutch) << std::endl;
 }
+
 int main(int argc, char** argv){
 ros::init(argc, argv, "dvrk_to_rvinci");
 davinci_mtm mtmlr;

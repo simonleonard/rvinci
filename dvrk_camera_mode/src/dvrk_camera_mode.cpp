@@ -27,17 +27,19 @@ dvrk_wrench::dvrk_wrench()
   rvinci_sub = n.subscribe<rvinci_input_msg::rvinci_input>("/rvinci_input_update",10,&dvrk_wrench::inputCallback,this);
   dvrk_pub[0] = n.advertise<geometry_msgs::Wrench>("/dvrk_mtml/set_wrench",10);
   dvrk_pub[1] = n.advertise<geometry_msgs::Wrench>("/dvrk_mtmr/set_wrench",10);
+  //std::cout << "input" << std::endl;
 }
 void dvrk_wrench::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input)
 {
   tf::Vector3 curvect = getVector(*r_input);
+  //std::cout << "input" << std::endl;
  // if (checkLimits(*r_input))
  // {
     tf::Transform tfT[2];
     for (int i = 0; i<2; ++i)
     {
       tf::Quaternion tfq;
-      tf::quaternionMsgToTF(r_input->gripper[i].pose.orientation,tfq); 
+      tf::quaternionMsgToTF(r_input->gripper[i].pose.pose.orientation,tfq); 
       tfT[i] = tf::Transform(tfq.inverse());
     }
   if(!r_input->camera && curvect.length() >  0.12)
@@ -62,7 +64,7 @@ tf::Vector3 dvrk_wrench::getVector(const rvinci_input_msg::rvinci_input rinput)
 tf::Vector3 tfv[2];
 for (int i = 0; i < 2; ++i)
 {
-tf::pointMsgToTF(rinput.gripper[i].pose.position,tfv[i]);
+tf::pointMsgToTF(rinput.gripper[i].pose.pose.position,tfv[i]);
 }
 
 return tfv[0] - tfv[1];
@@ -105,6 +107,7 @@ dvrk_wrench dvrkw;
 dvrkw.r_ = new ros::Rate(200);
 while(ros::ok())
 {
+
 ros::spinOnce();
 dvrkw.r_->sleep();
 }

@@ -3,10 +3,9 @@
   <!--<include file="$(find dvrk_robot)/launch/test_dvrk_full.launch"/>-->
 
   <node name="basic_controls" type="basic_controls" pkg="interactive_marker_tutorials" />
-  <node name="dvrk_to_rvinci" type="dvrk_to_rvinci" pkg="dvrk_to_rvinci"/>
-  <node name="dvrk_camera_mode" type="dvrk_camera_mode" pkg="dvrk_camera_mode" output="screen"/>
- 
- 
+  <node name="dvrk_to_rvinci" type="dvrk_to_rvinci" pkg="dvrk_to_rvinci" />
+  <node name="dvrk_camera_mode" type="dvrk_camera_mode" pkg="dvrk_camera_mode"/>
+  
   <include file="$(find ur10_moveit_config)/launch/planner.launch">
   
   </include>
