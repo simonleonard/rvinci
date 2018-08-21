@@ -1,0 +1,56 @@
+<launch>
+  <arg name="rviz" default="false" />
+  <arg name="arm" default="MTM"/>   
+  <arg name="config" />   
+
+  <arg name="modelL" default="$(find dvrk_model)/model/MTML.urdf.xacro" />
+  <arg name="modelR" default="$(find dvrk_model)/model/MTMR.urdf.xacro" />
+  
+  <node name="dvrk_$(arg arm)_node"
+        pkg="dvrk_robot"
+        type="dvrk_console_json"        
+        args="-j $(arg config)"                     
+        output="screen"/>
+
+  <group ns="/dvrk/MTML">
+      <arg name="gui" default="false" />
+      <arg name="rate" default="20" />
+      
+      <param name="robot_description" command="rosrun xacro xacro.py $(arg modelL) prefix:=MTML_"/>
+      <param name="use_gui" value="$(arg gui)"/>
+      <param name="rate" value="$(arg rate)"/>
+      
+      <rosparam param="source_list" subst_value="True">
+          [/dvrk/MTML/state_joint_current,
+           /dvrk/MTML/state_jaw_current,
+           /dvrk/MTML/state_gripper_current]
+      </rosparam>
+
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+      <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+  </group>
+
+  <group ns="/dvrk/MTMR">
+      <arg name="gui" default="false" />
+      <arg name="rate" default="20" />
+      
+      <param name="robot_description" command="rosrun xacro xacro.py $(arg modelR) prefix:=MTMR_"/>
+      <param name="use_gui" value="$(arg gui)"/>
+      <param name="rate" value="$(arg rate)"/>
+      
+      <rosparam param="source_list" subst_value="True">
+          [/dvrk/MTMR/state_joint_current,
+           /dvrk/MTMR/state_jaw_current,
+           /dvrk/MTMR/state_gripper_current]
+      </rosparam>
+
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+      <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+  </group>
+  <!--
+  <node if="$(arg rviz)" name="rviz" pkg="rviz" type="rviz"
+     args="-d $(find dvrk_model)/rviz_config/$(arg arm).rviz" />
+     -->
+</launch>
+
+
