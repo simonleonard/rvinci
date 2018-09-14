@@ -78,7 +78,6 @@ rvinciDisplay::rvinciDisplay()
 , window_(0)
 , camera_offset_(0.0,-3.0,1.5)
 {
-  std::cout << "rvinci" << std::endl;
 
   std::string rviz_path = ros::package::getPath(ROS_PACKAGE_NAME);
   Ogre::ResourceGroupManager::getSingleton().addResourceLocation( rviz_path + "/ogre_media", "FileSystem", ROS_PACKAGE_NAME );
@@ -183,244 +182,253 @@ void rvinciDisplay::gravityCompensation()
   pub_robot_state_[_LEFT].publish(msg);
   pub_robot_state_[_RIGHT].publish(msg);
 }
-void rvinciDisplay::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input)
-{
 
-   Ogre::Quaternion orshift(0,0,-sqrt(0.5),sqrt(0.5));//shifts incoming davinci orientation into world frame
-   orshift=orshift* Ogre::Quaternion(0,0,1,0);
-   Ogre::Quaternion inori[2];
-
-  camera_mode_ = r_input->camera;
-  clutch_mode_ = r_input->clutch;
-
-  if(!clutch_mode_)
+  void rvinciDisplay::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input)
   {
-    Ogre::Quaternion camor =camera_[_LEFT]->getRealOrientation();
-    int grab[2];
-    for (int i = 0; i<2; ++i) //getting absolute and delta position of grippers, for use in cam and cursor.
-    {
-      Ogre::Vector3 old_input = input_pos_[i];
-      geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
-
-      input_pos_[i] = Ogre::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);// + cursor_offset_[i];
-      input_pos_[i]*=prop_input_scalar_->getVector();
-      inori[i] = Ogre::Quaternion(pose.pose.orientation.w,pose.pose.orientation.x,pose.pose.orientation.y,pose.pose.orientation.z);
-      inori[i]= camor*(orshift*inori[i]);
-
-      input_change_[i] = camor*(input_pos_[i] - old_input);
-    }
-
-    if (!camera_mode_)
-    {
-      geometry_msgs::Pose curspose;
-
-      for (int i = 0; i<2; ++i)
+    
+    Ogre::Quaternion orshift(0,0,-sqrt(0.5),sqrt(0.5));//shifts incoming davinci orientation into world frame
+    orshift=orshift* Ogre::Quaternion(0,0,1,0);
+    Ogre::Quaternion inori[2];
+    
+    camera_mode_ = r_input->camera;
+    clutch_mode_ = r_input->clutch;
+    
+    if(!clutch_mode_)
       {
-        cursor_[i].position.x += input_change_[i].x;
-        cursor_[i].position.y += input_change_[i].y;
-        cursor_[i].position.z += input_change_[i].z;
-        cursor_[i].orientation.x = inori[i].x;
-        cursor_[i].orientation.y = inori[i].y;
-        cursor_[i].orientation.z = inori[i].z;
-        cursor_[i].orientation.w = inori[i].w;
-        grab[i] = getaGrip(r_input->gripper[i].grab, i);
+	Ogre::Quaternion camor =camera_[_LEFT]->getRealOrientation();
+	int grab[2];
+	for (int i = 0; i<2; ++i) //getting absolute and delta position of grippers, for use in cam and cursor.
+	  {
+	    Ogre::Vector3 old_input = input_pos_[i];
+	    geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
+
+	    Ogre::Quaternion offset( 0.7071, 0.7071, 0, 0 );	    
+	    input_pos_[i] = offset*Ogre::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);// + cursor_offset_[i];
+	    input_pos_[i]*=prop_input_scalar_->getVector();
+	    inori[i] = Ogre::Quaternion(pose.pose.orientation.w,pose.pose.orientation.x,pose.pose.orientation.y,pose.pose.orientation.z);
+	    inori[i]= camor*(orshift*inori[i]);
+	    
+	    input_change_[i] = camor*(input_pos_[i] - old_input);
+	  }
+	
+	if (!camera_mode_)
+	  {
+	    geometry_msgs::Pose curspose;
+	    
+	    for (int i = 0; i<2; ++i)
+	      {
+		cursor_[i].position.x += input_change_[i].x;
+		cursor_[i].position.y += input_change_[i].y;
+		cursor_[i].position.z += input_change_[i].z;
+		cursor_[i].orientation.x = inori[i].x;
+		cursor_[i].orientation.y = inori[i].y;
+		cursor_[i].orientation.z = inori[i].z;
+		cursor_[i].orientation.w = inori[i].w;
+		grab[i] = getaGrip(r_input->gripper[i].grab, i);
+	      }
+	    publishCursorUpdate(grab);
+	    /*
+	     * inital_vect is constantly calculated, to set origin vector between grippers when
+	     * camera mode is triggered.
+	     */
+	    initial_cvect_ = (input_pos_[_LEFT] - input_pos_[_RIGHT]);
+	    initial_cvect_.normalise(); //normalise, otherwise issues when doing v1.getRotationto(v2);
+	  }
+	else
+	  {
+	    /*
+	     * When camera mode is activated, cursor positions are reinitialized around the camera node,
+	     * similar to the orientation of the grippers in real life. This gives an intuitive feel, so
+	     * when the cameras are moved, the cursors appear on screen similarly to where your hands are
+	     * positioned in real life.
+	     */
+
+	    cameraUpdate();
+	    Ogre::Vector3 cursp[2];
+	    Ogre::Vector3 campos = camera_node_->getPosition();
+	    for (int i = 0; i<2; ++i)
+	      {
+		cursp[i] = camera_[_LEFT]->getRealOrientation()*(input_pos_[i]);
+		cursor_[i].position.x = (cursp[i].x + campos.x);
+		cursor_[i].position.y = (cursp[i].y + campos.y);
+		cursor_[i].position.z = (cursp[i].z + campos.z);
+		cursor_[i].orientation.x = inori[i].x;
+		cursor_[i].orientation.y = inori[i].y;
+		cursor_[i].orientation.z = inori[i].z;
+		cursor_[i].orientation.w = inori[i].w;
+
+		// A Naive Try to Fix the camera bug
+		/*
+		  geometry_msgs::Pose tmp_davinci;
+		  tmp_davinci.position.y =  cursor_[i].position.y;
+		  cursor_[i].position.y = cursor_[i].position.z;
+		  cursor_[i].position.z = tmp_davinci.position.y;
+		  tmp_davinci.orientation.y = cursor_[i].orientation.y;
+		  cursor_[i].orientation.y = cursor_[i].orientation.z;
+		  cursor_[i].orientation.z = tmp_davinci.orientation.y;
+		*/
+		
+		grab[i] = 0;
+	      }
+	    prop_cam_focus_->setVector(input_pos_[_RIGHT]);
+	    publishCursorUpdate(grab);
+
+	  }
       }
-        publishCursorUpdate(grab);
-        /*
-         * inital_vect is constantly calculated, to set origin vector between grippers when
-         * camera mode is triggered.
-         */
-        initial_cvect_ = (input_pos_[_LEFT] - input_pos_[_RIGHT]);
-        initial_cvect_.normalise(); //normalise, otherwise issues when doing v1.getRotationto(v2);
-    }
-    else
+    else//to avoid an erroneously large input_update_ following clutched movement
       {
-        /*
-         * When camera mode is activated, cursor positions are reinitialized around the camera node,
-         * similar to the orientation of the grippers in real life. This gives an intuitive feel, so
-         * when the cameras are moved, the cursors appear on screen similarly to where your hands are
-         * positioned in real life.
-         */
-        cameraUpdate();
-        Ogre::Vector3 cursp[2];
-        Ogre::Vector3 campos = camera_node_->getPosition();
-        for (int i = 0; i<2; ++i)
-      {
-        cursp[i] = camera_[_LEFT]->getRealOrientation()*(input_pos_[i]);
-        cursor_[i].position.x = cursp[i].x + campos.x;
-        cursor_[i].position.y = cursp[i].y + campos.y;
-        cursor_[i].position.z = cursp[i].z + campos.z;
-        cursor_[i].orientation.x = inori[i].x;
-        cursor_[i].orientation.y = inori[i].y;
-        cursor_[i].orientation.z = inori[i].z;
-        cursor_[i].orientation.w = inori[i].w;
-
-        // A Naive Try to Fix the camera bug
-        /*
-        geometry_msgs::Pose tmp_davinci;
-        tmp_davinci.position.y =  cursor_[i].position.y;
-        cursor_[i].position.y = cursor_[i].position.z;
-        cursor_[i].position.z = tmp_davinci.position.y;
-        tmp_davinci.orientation.y = cursor_[i].orientation.y;
-        cursor_[i].orientation.y = cursor_[i].orientation.z;
-        cursor_[i].orientation.z = tmp_davinci.orientation.y;
-        */
-
-
-        grab[i] = 0;
-      }
-        prop_cam_focus_->setVector(input_pos_[_RIGHT]);
-        publishCursorUpdate(grab);
+	for(int i = 0; i<2; ++i)
+	  {
+	    geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
+	    Ogre::Quaternion offset( 0.7071, 0.7071, 0, 0 );	    
+	    input_pos_[i] = offset*Ogre::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);// + cursor_offset_[i];
+	    input_pos_[i]*= prop_input_scalar_->getVector();
+	    initial_cvect_ = (input_pos_[_LEFT] - input_pos_[_RIGHT]);
+	    initial_cvect_.normalise();
+	  }
       }
   }
-  else//to avoid an erroneously large input_update_ following clutched movement
+  
+  void rvinciDisplay::publishCursorUpdate(int grab[2])
   {
-    for(int i = 0; i<2; ++i)
-    {
-      geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
-      input_pos_[i] = Ogre::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);// + cursor_offset_[i];
-      input_pos_[i]*= prop_input_scalar_->getVector();
-      initial_cvect_ = (input_pos_[_LEFT] - input_pos_[_RIGHT]);
-      initial_cvect_.normalise();
-    }
-  }
-}
-void rvinciDisplay::publishCursorUpdate(int grab[2])
-{
-  //fixed frame is a parent member from RViz Display, pointing to selected world frame in rviz;
-  std::string frame = context_->getFixedFrame().toStdString();
-  interaction_cursor_msgs::InteractionCursorUpdate lhcursor;
-  interaction_cursor_msgs::InteractionCursorUpdate rhcursor;
-
-  rhcursor.pose.header.frame_id = frame;
-  rhcursor.pose.header.stamp = ros::Time::now();
-  rhcursor.pose.pose = cursor_[_RIGHT];
-  rhcursor.button_state = grab[_RIGHT];
-
-  lhcursor.pose.header.frame_id = frame;
-  lhcursor.pose.header.stamp = ros::Time::now();
-  lhcursor.pose.pose = cursor_[_LEFT];
-  lhcursor.button_state = grab[_LEFT];
-
-  publisher_rhcursor_.publish(rhcursor);
+    //fixed frame is a parent member from RViz Display, pointing to selected world frame in rviz;
+    std::string frame = context_->getFixedFrame().toStdString();
+    interaction_cursor_msgs::InteractionCursorUpdate lhcursor;
+    interaction_cursor_msgs::InteractionCursorUpdate rhcursor;
+    
+    rhcursor.pose.header.frame_id = frame;
+    rhcursor.pose.header.stamp = ros::Time::now();
+    rhcursor.pose.pose = cursor_[_RIGHT];
+    rhcursor.button_state = grab[_RIGHT];
+    
+    lhcursor.pose.header.frame_id = frame;
+    lhcursor.pose.header.stamp = ros::Time::now();
+    lhcursor.pose.pose = cursor_[_LEFT];
+    lhcursor.button_state = grab[_LEFT];
+    
+    publisher_rhcursor_.publish(rhcursor);
   publisher_lhcursor_.publish(lhcursor);
-}
-int rvinciDisplay::getaGrip(bool grab, int i)
-{
-  if(grab && !prev_grab_[i])
-    {
-    prev_grab_[i] = grab;
-    return 2;//Grab object
-    }
-  if(grab && prev_grab_[i])
-    {
-    prev_grab_[i] = grab;
+  }
+  
+  int rvinciDisplay::getaGrip(bool grab, int i)
+  {
+    if(grab && !prev_grab_[i])
+      {
+	prev_grab_[i] = grab;
+	return 2;//Grab object
+      }
+    if(grab && prev_grab_[i])
+      {
+	prev_grab_[i] = grab;
     return 1;//hold object
-    }
-  if(!grab && prev_grab_[i])
-    {
-    prev_grab_[i] = grab;
-    return 3;//Release object
-    }
-  if(!grab && !prev_grab_[i])
-    {
-    prev_grab_[i] = grab;
-    return 0;//none
-   }
-}
-void rvinciDisplay::cameraSetup()
-{
- Ogre::ColourValue bg_color = context_->getViewManager()->getRenderPanel()->getViewport()->getBackgroundColour();
- window_ = render_widget_->getRenderWindow();
- camera_[_LEFT] = scene_manager_->createCamera("Left Camera");
- camera_[_RIGHT] = scene_manager_->createCamera("Right Camera");
- for(int i = 0; i<2; ++i)
- {
-   camera_node_->attachObject(camera_[i]);
-   viewport_[i] = window_->addViewport(camera_[i],i,0.5f*i,0.0f,0.5f,1.0f);//,0,0.5f,0,0.5f,1.0f);
-   viewport_[i]->setBackgroundColour(bg_color);
- }
-   cameraReset();
-}
-void rvinciDisplay::cameraReset()
-{
- camera_pos_= Ogre::Vector3(0.0f,0.0f,0.0f);
- camera_node_->setOrientation(1,0,0,0);
- camera_node_->setPosition(camera_pos_);
- for (int i = 0; i<2; ++i)
- {
- camera_[i]->setNearClipDistance(0.01f);
- camera_[i]->setFarClipDistance(10000.0f);
- camera_[i]->setFixedYawAxis(true, camera_node_->getOrientation() * Ogre::Vector3::UNIT_Z);
- camera_[i]->setPosition(camera_offset_ - camera_ipd_ + 2*i*camera_ipd_);
- camera_[i]->lookAt(camera_node_->getPosition());
-
- cursor_[i].position.x = (2*i - 1)*0.6;
- cursor_[i].position.y = 0;
- cursor_[i].position.z = 0;
- }
-
- prop_cam_reset_->setValue(QVariant(false));
-}
-void rvinciDisplay::cameraUpdate()
-{
-/*Manual camera control doesn't work perfectly, but is deemed unnecessary.
- Code left for future use, if desired.
-
-    if(prop_manual_coords_->getBool())
-   {
-     camera_pos_ = Ogre::Vector3(prop_camera_posit_->getVector());
+      }
+    if(!grab && prev_grab_[i])
+      {
+	prev_grab_[i] = grab;
+	return 3;//Release object
+      }
+    if(!grab && !prev_grab_[i])
+      {
+	prev_grab_[i] = grab;
+	return 0;//none
+      }
+  }
+  
+  void rvinciDisplay::cameraSetup()
+  {
+    Ogre::ColourValue bg_color = context_->getViewManager()->getRenderPanel()->getViewport()->getBackgroundColour();
+    window_ = render_widget_->getRenderWindow();
+    camera_[_LEFT] = scene_manager_->createCamera("Left Camera");
+    camera_[_RIGHT] = scene_manager_->createCamera("Right Camera");
+    for(int i = 0; i<2; ++i)
+      {
+	camera_node_->attachObject(camera_[i]);
+	viewport_[i] = window_->addViewport(camera_[i],i,0.5f*i,0.0f,0.5f,1.0f);//,0,0.5f,0,0.5f,1.0f);
+	viewport_[i]->setBackgroundColour(bg_color);
+      }
+    cameraReset();
+  }
+  
+  void rvinciDisplay::cameraReset()
+  {
+    camera_pos_= Ogre::Vector3(0.0f,0.0f,0.0f);
+    camera_node_->setOrientation(1,0,0,0);
+    camera_node_->setPosition(camera_pos_);
+    for (int i = 0; i<2; ++i)
+      {
+	camera_[i]->setNearClipDistance(0.01f);
+	camera_[i]->setFarClipDistance(10000.0f);
+	camera_[i]->setFixedYawAxis(true, camera_node_->getOrientation() * Ogre::Vector3::UNIT_Z);
+	camera_[i]->setPosition(camera_offset_ - camera_ipd_ + 2*i*camera_ipd_);
+	camera_[i]->lookAt(camera_node_->getPosition());
+	
+	cursor_[i].position.x = (2*i - 1)*0.6;
+	cursor_[i].position.y = 0;
+	cursor_[i].position.z = 0;
+      }
+    
+    prop_cam_reset_->setValue(QVariant(false));
+  }
+  
+  void rvinciDisplay::cameraUpdate()
+  {
+    /*Manual camera control doesn't work perfectly, but is deemed unnecessary.
+      Code left for future use, if desired.
+      
+      if(prop_manual_coords_->getBool())
+      {
+      camera_pos_ = Ogre::Vector3(prop_camera_posit_->getVector());
      camera_node_->setPosition(camera_pos_ - camera_offset_);
      property_camrot_->setQuaternion(camera_[_LEFT]->getRealOrientation());
      camera_[_LEFT]->lookAt(prop_cam_focus_->getVector());
      camera_[_RIGHT]->lookAt(prop_cam_focus_->getVector());
     }*/
-  if(camera_mode_)
-  {
-
-
-      std::cout << "HERE" << std::endl;
-
-      Ogre::Vector3 newvect = input_pos_[_LEFT] - input_pos_[_RIGHT];
-      newvect.normalise();
-      Ogre::Quaternion camrot  = initial_cvect_.getRotationTo(newvect);
-
-      camera_pos_ = Ogre::Vector3(camera_pos_ - ((input_change_[_RIGHT] + input_change_[_LEFT])));
-      camera_node_->setOrientation(camera_node_->getOrientation()*camrot.Inverse());
-      //camera_node_->setOrientation(camera_node_->getOrientation());
-      camera_node_->setPosition(camera_pos_);
-  
-
-      initial_cvect_ = newvect;
-
-      property_camrot_->setQuaternion(camera_[_LEFT]->getRealOrientation());
-      prop_camera_posit_->setVector(camera_pos_ + property_camrot_->getQuaternion()*camera_[_LEFT]->getPosition());
-      prop_cam_focus_->setVector(camera_node_->getPosition());
-}
-}
-void rvinciDisplay::preRenderTargetUpdate(const Ogre::RenderTargetEvent& evt)
-{
-cameraUpdate();
-}
-void rvinciDisplay::postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt)
-{
-  window_ = render_widget_->getRenderWindow();
-  window_->swapBuffers();
-}
-void rvinciDisplay::onEnable()
-{
-  if(!camera_[_LEFT])
-  {
-  cameraSetup();
+    if(camera_mode_)
+      {
+	
+	Ogre::Quaternion offset( 0.7071, 0.7071, 0, 0 );
+	Ogre::Vector3 newvect = (input_pos_[_LEFT] - input_pos_[_RIGHT]);
+	newvect.normalise();
+	Ogre::Quaternion camrot  = initial_cvect_.getRotationTo(newvect);
+	
+	camera_pos_ = Ogre::Vector3(camera_pos_ - ((input_change_[_RIGHT] + input_change_[_LEFT])));
+	camera_node_->setOrientation(camera_node_->getOrientation()*camrot.Inverse());
+	camera_node_->setPosition(camera_pos_);
+	
+	initial_cvect_ = newvect;
+	
+	property_camrot_->setQuaternion(camera_[_LEFT]->getRealOrientation());
+	prop_camera_posit_->setVector(camera_pos_ + property_camrot_->getQuaternion()*camera_[_LEFT]->getPosition());
+	prop_cam_focus_->setVector(camera_node_->getPosition());
+      }
   }
-  render_widget_->setVisible(true);
-  cameraReset();
-}
-void rvinciDisplay::onDisable()
-{
-  render_widget_ ->setVisible(false);
-}
-
+  
+  void rvinciDisplay::preRenderTargetUpdate(const Ogre::RenderTargetEvent& evt)
+  {
+    cameraUpdate();
+  }
+  
+  void rvinciDisplay::postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt)
+  {
+    window_ = render_widget_->getRenderWindow();
+    window_->swapBuffers();
+  }
+  
+  void rvinciDisplay::onEnable()
+  {
+    if(!camera_[_LEFT])
+      {
+	cameraSetup();
+      }
+    render_widget_->setVisible(true);
+    cameraReset();
+  }
+  
+  void rvinciDisplay::onDisable()
+  {
+    render_widget_ ->setVisible(false);
+  }
+  
 }//namespace rvinci
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(rvinci::rvinciDisplay, rviz::Display )
