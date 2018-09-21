@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="satellite" params="frame_name">
+
+    <link name='satellite'>
+      <origin pose='0.0 0.0 0.0 0.0 0.0 0.0'/>
+      <visual>
+	<geometry>
+          <mesh filename="package://rvinci/meshes/satellite.dae" />
+	</geometry>
+      </visual>
+    </link>
+    
+    <joint name="satellite_joint" type="fixed">
+      <origin xyz="0 0 0.175" rpy="0 0 0"/>
+      <parent link="world"/>
+      <child link="satellite"/>
+    </joint>
+    
+  </xacro:macro>
+
+</robot>

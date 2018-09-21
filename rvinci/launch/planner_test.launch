@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<launch>
+<!-- Parameters-->
+  <!-- By default, we do not start a database (it can be large) -->
+  <arg name="db" default="false" />
+
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+  
+  <arg name="limited" default="false"/>
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  
+  <include file="$(find ur10_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+    <arg name="limited" value="$(arg limited)"/>
+  </include>
+
+
+  <!--                        New Added                        -->
+  
+  <include file="$(find cutter_description)/launch/ur10_upload.launch"/>
+<!--
+  <include file="$(find cutter_description)/launch/cutter_description.launch">
+    <arg name="frame_name" value="tool0" />
+  </include>
+
+    <node pkg="tf"
+          type="static_transform_publisher"
+          name="camera_tf"
+          args="0.05 -0.02 0.02 1.0 -0.1 -0.4 tool0 camera 10">
+    </node>
+
+    <node pkg="tf"
+          type="static_transform_publisher"
+          name="blade_tf"
+          args="-0.00075 0.00075 0.2038 0.0 0.0 0.0 tool0 blade 10">
+    </node>
+
+    <node pkg="tf"
+          type="static_transform_publisher"
+          name="camera_home_tf"
+          args="0.0 0.0 0.0 -1.5807 -1.5807 0.0 camera home_virt 10">
+    </node>
+-->
+
+    <!--                        New Added                        -->
+
+
+    <!-- We do not have a robot connected, so publish fake joint states -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <param name="/use_gui" value="false"/> 
+      <param name="/rate" value="1"/> 
+      <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
+    </node>
+    
+  <!-- Given the published joint states, publish tf for the robot links -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+
+  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find ur10_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>  
+<!--    <arg name="fake_execution" value="true"/>  -->
+    <arg name="fake_execution" value="true"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <include file="$(find ur10_moveit_config)/launch/ur10_cutter.launch">
+    <arg name="config" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- If database loading was enabled, start mongodb as well -->
+  <include file="$(find ur10_moveit_config)/launch/default_warehouse_db.launch" if="$(arg db)"/>
+
+</launch>
