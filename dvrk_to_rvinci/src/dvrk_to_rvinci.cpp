@@ -54,22 +54,24 @@ davinci_mtm::davinci_mtm()
 
 void davinci_mtm::getPose(const geometry_msgs::PoseStamped::ConstPtr& pose, int i)
 {
-  //std::cout << "getPose " << i << std::endl;
   rvmsg_.gripper[i].pose = *pose;
   //Offsets to set davinci at 0 x and y, with an x offset for each gripper.
-  rvmsg_.gripper[i].pose.pose.position.x += (2*i-1)*0.15;
-  rvmsg_.gripper[i].pose.pose.position.y += 0.36;
-  rvmsg_.gripper[i].pose.pose.position.z += 0.135;
+  //rvmsg_.gripper[i].pose.pose.position.x += (2*i-1)*0.15;
+  //rvmsg_.gripper[i].pose.pose.position.y += 0.36;
+  //rvmsg_.gripper[i].pose.pose.position.z += 0.135;
   
   // Moving In Wrong Direction
+  
   geometry_msgs::Pose tmp_davinci;
   rvmsg_.gripper[i].pose.pose.position.x = -rvmsg_.gripper[i].pose.pose.position.x;
   tmp_davinci.position.y = rvmsg_.gripper[i].pose.pose.position.y;
   rvmsg_.gripper[i].pose.pose.position.y = rvmsg_.gripper[i].pose.pose.position.z;
   rvmsg_.gripper[i].pose.pose.position.z = tmp_davinci.position.y;
-
-  //std::cout << "POSE " << rvmsg_.gripper[i].pose << std::endl;
-  //std::cout << i << std::endl;
+  /*
+  rvmsg_.gripper[i].pose.pose.position.x = rvmsg_.gripper[i].pose.pose.position.x;
+  rvmsg_.gripper[i].pose.pose.position.y = rvmsg_.gripper[i].pose.pose.position.y;
+  rvmsg_.gripper[i].pose.pose.position.z = rvmsg_.gripper[i].pose.pose.position.z;
+  */
 }
 void davinci_mtm::gripCallback(const std_msgs::Bool::ConstPtr& grab, int i)
 {
@@ -90,8 +92,6 @@ void davinci_mtm::cameraTestCallback(const sensor_msgs::Joy::ConstPtr& cam)
     rvmsg_.camera = 1;
   else
     rvmsg_.camera = 0;
-
-  std::cout << "Camera " << int(rvmsg_.camera) << std::endl;
 }
 
 /*void davinci_mtm::clutchCallback(const std_msgs::Bool::ConstPtr& cltch)
@@ -107,21 +107,19 @@ void davinci_mtm::clutchTestCallback(const sensor_msgs::Joy::ConstPtr& cltch)
     rvmsg_.clutch = true;
   else
     rvmsg_.clutch = false;
-
-  std::cout << "Clutch " << int(rvmsg_.clutch) << std::endl;
 }
 
 int main(int argc, char** argv){
-ros::init(argc, argv, "dvrk_to_rvinci");
-davinci_mtm mtmlr;
-ros::Rate r(200);
-
-while(ros::ok())
-{
- ros::spinOnce();
- mtmlr.rvmsg_.header.stamp = ros::Time::now();
- mtmlr.rvinci_pub_.publish(mtmlr.rvmsg_);
- r.sleep();
-}
+  ros::init(argc, argv, "dvrk_to_rvinci");
+  davinci_mtm mtmlr;
+  ros::Rate r(200);
+  
+  while(ros::ok())
+    {
+      ros::spinOnce();
+      mtmlr.rvmsg_.header.stamp = ros::Time::now();
+      mtmlr.rvinci_pub_.publish(mtmlr.rvmsg_);
+      r.sleep();
+    }
 }
 
