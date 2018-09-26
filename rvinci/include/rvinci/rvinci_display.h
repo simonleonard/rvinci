@@ -137,6 +137,7 @@ private:
 
   Ogre::Camera* camera_[2];
   Ogre::SceneNode *camera_node_;
+  Ogre::Quaternion camera_quat_;
   Ogre::SceneNode *target_node_;
   Ogre::Viewport *viewport_[2];
   Ogre::RenderWindow *window_;
