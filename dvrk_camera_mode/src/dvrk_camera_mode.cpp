@@ -33,7 +33,6 @@ dvrk_wrench::dvrk_wrench()
 void dvrk_wrench::inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input)
 {
   tf::Vector3 curvect = getVector(*r_input);
-  //std::cout << "input" << std::endl;
   // if (checkLimits(*r_input))
   // {
   tf::Transform tfT[2];
@@ -75,8 +74,6 @@ tf::Vector3 dvrk_wrench::getVector(const rvinci_input_msg::rvinci_input rinput)
       tf::pointMsgToTF(rinput.gripper[i].pose.pose.position,tfv[i]);
     }
 
-  //std::cout << rinput.gripper[0].pose.pose.position << std::endl;
-  //std::cout << rinput.gripper[1].pose.pose.position << std::endl;
   return tfv[0] - tfv[1];
 }
 
@@ -106,7 +103,6 @@ void dvrk_wrench::publishWrench(const tf::Vector3 vector, double magnitude, tf::
 	  torqmago_[i] = torqmag_[i];
 	  tf::vector3TFToMsg(tPD*torque,wrench[i].torque);i*/
       tf::vector3TFToMsg(tvect,wrench[i].force);
-      //std::cout << wrench[i].force << std::endl;
       dvrk_pub[i].publish(wrench[i]);
     }
   strength_[1] = strength_[0];

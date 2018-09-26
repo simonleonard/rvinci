@@ -202,7 +202,7 @@ void rvinciDisplay::gravityCompensation()
 	    Ogre::Vector3 old_input = input_pos_[i];
 	    geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
 
-	    Ogre::Quaternion offset( 0.8660, 0.5, 0, 0 );	    
+	    Ogre::Quaternion offset( 0.7071, 0.7071, 0, 0 );
 	    input_pos_[i] = offset*Ogre::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
 	    input_pos_[i]*=prop_input_scalar_->getVector();
 	    inori[i] = Ogre::Quaternion(pose.pose.orientation.w,
@@ -280,7 +280,6 @@ void rvinciDisplay::gravityCompensation()
 		  cursor_[i].orientation.y = cursor_[i].orientation.z;
 		  cursor_[i].orientation.z = tmp_davinci.orientation.y;
 		*/
-		
 		grab[i] = 0;
 	      }
 	    prop_cam_focus_->setVector(input_pos_[_RIGHT]);
@@ -293,7 +292,7 @@ void rvinciDisplay::gravityCompensation()
 	for(int i = 0; i<2; ++i)
 	  {
 	    geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
-	    Ogre::Quaternion offset( 0.8660, 0.5, 0, 0 );	    
+	    Ogre::Quaternion offset( 0.7071, 0.7071, 0, 0 );
 	    input_pos_[i] = offset*Ogre::Vector3(pose.pose.position.x,
 						 pose.pose.position.y,
 						 pose.pose.position.z);
@@ -385,33 +384,19 @@ void rvinciDisplay::gravityCompensation()
   
   void rvinciDisplay::cameraUpdate()
   {
-    /*Manual camera control doesn't work perfectly, but is deemed unnecessary.
-      Code left for future use, if desired.
-      
-      if(prop_manual_coords_->getBool())
-      {
-      camera_pos_ = Ogre::Vector3(prop_camera_posit_->getVector());
-     camera_node_->setPosition(camera_pos_ - camera_offset_);
-     property_camrot_->setQuaternion(camera_[_LEFT]->getRealOrientation());
-     camera_[_LEFT]->lookAt(prop_cam_focus_->getVector());
-     camera_[_RIGHT]->lookAt(prop_cam_focus_->getVector());
-    }*/
     if(camera_mode_)
       {
-	Ogre::Quaternion offset( 0.8660, 0.5, 0, 0 );	    
-	Ogre::Quaternion o1( 0.7071, -0.7071, 0, 0);
 	Ogre::Vector3 newvect = (input_pos_[_LEFT] - input_pos_[_RIGHT]);
 	newvect.normalise();
-	Ogre::Vector3 icv;
-	icv =  initial_cvect_;
-	Ogre::Quaternion camrot  = icv.getRotationTo(newvect);
-	//camera_node_->setOrientation( camera_node_->getOrientation() * camrot.Inverse() );
-	//std::cout << initial_cvect_ << " " << newvect << std::endl;
+
+	Ogre::Quaternion offset(  1, 0, 0, 0 );
+	Ogre::Quaternion camrot  = (offset*initial_cvect_).getRotationTo(offset*newvect);
+	camera_node_->setOrientation( camera_quat_ * camrot.Inverse() );
 	
 	camera_pos_ = Ogre::Vector3(camera_pos_ - ((input_change_[_RIGHT] + input_change_[_LEFT])));
 	camera_node_->setPosition(camera_pos_);
 	
-	initial_cvect_ = newvect;
+	//initial_cvect_ = newvect;
 	
 	property_camrot_->setQuaternion(camera_[_LEFT]->getRealOrientation());
 	prop_camera_posit_->setVector(camera_pos_ + property_camrot_->getQuaternion()*camera_[_LEFT]->getPosition());
