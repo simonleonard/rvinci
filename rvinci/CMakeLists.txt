@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rvinci)
 
-# Qt
+# Qt 5 fix
 find_package(Qt5Core)
 find_package(Qt5Widgets)
 find_package(Qt5Gui)
