@@ -30,149 +30,146 @@
 #ifndef RVINCI_DISPLAY_H
 #define RVINCI_DISPLAY_H
 
-//#ifndef Q_MOC_RUN
 #include <QObject>
 
-//#ifndef Q_MOC_RUN
-
 #include "rviz/display.h"
-#include <ros/ros.h>
-#include <OGRE/OgreRenderTargetListener.h>
 #include <OGRE/OgrePrerequisites.h>
-#include <OgreVector3.h>
+#include <OGRE/OgreRenderTargetListener.h>
 #include <OgreQuaternion.h>
+#include <OgreVector3.h>
+#include <ros/ros.h>
 
 #include <rvinci_input_msg/rvinci_input.h>
 #endif
 
-namespace Ogre
-{
+namespace Ogre {
 class SceneNode;
 class RenderWindow;
 class Camera;
 class Viewport;
-}
+} // namespace Ogre
 
-namespace rviz
-{
+namespace rviz {
 class BoolProperty;
 class RenderWidget;
 class VectorProperty;
 class QuaternionProperty;
 class RosTopicProperty;
-}
+} // namespace rviz
 
-namespace rvinci
-{
-class rvinciDisplay: public rviz::Display, public Ogre::RenderTargetListener
-{
-//! RVinci display plugin for RViz.
-/*! The RVinci display class is a plugin for RViz which is designed to allow
- * a da Vinci surgical console to navigate the RViz environment and manipulate
- * virtual objects within the world. It spawns a seperate window with stereo display
- * whose cameras can be controlled with the console. It also provides outputs for
- * the interaction_cursor_3D to spawn two 3D cursors. 
- */
-Q_OBJECT
+namespace rvinci {
+class rvinciDisplay : public rviz::Display, public Ogre::RenderTargetListener {
+  //! RVinci display plugin for RViz.
+  /*! The RVinci display class is a plugin for RViz which is designed to allow
+   * a da Vinci surgical console to navigate the RViz environment and manipulate
+   * virtual objects within the world. It spawns a separate window with stereo
+   * display whose cameras can be controlled with the console. It also provides
+   * outputs for the interaction_cursor_3D to spawn two 3D cursors.
+   */
+  Q_OBJECT
 public:
-   //! A constructor
-   /*!The rviz/Qt Render Widget is created here, and the Ogre
+  //! A constructor
+  /*!The rviz/Qt Render Widget is created here, and the Ogre
    * rendering window is attached to it. The Ogre camera node
    * is spawned and the ROS subscriber and publisher setup member is called.
    */
   rvinciDisplay();
-  //!Destructor
-  virtual ~rvinciDisplay();
+  //! Destructor
+  ~rvinciDisplay() override;
 
-//  virtual void reset();
+  //  virtual void reset();
 
-  //!Override from Ogre::RenderTargetListener
-  virtual void preRenderTargetUpdate( const Ogre::RenderTargetEvent& evt );
+  //! Override from Ogre::RenderTargetListener
+  void preRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) override;
 
-  //!Override from Ogre::RenderTargetListener
-  virtual void postRenderTargetUpdate( const Ogre::RenderTargetEvent& evt );
+  //! Override from Ogre::RenderTargetListener
+  void postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) override;
 
 protected:
-  //!Called after onInitialize.
+  //! Called after onInitialize.
   /*!Called after onInitialize or if display plugin is enabled
    * after being disabled. Calls camera setup member if cameras
    * are not initialized and makes external render window visible.
    */
-  virtual void onEnable();
-  //!Called when plugin is disabled (by deselecting the check box).
-  virtual void onDisable();
-  //!Contains primary logic for camera control.
+  void onEnable() override;
+  //! Called when plugin is disabled (by deselecting the check box).
+  void onDisable() override;
+  //! Contains primary logic for camera control.
   /*!Camera position is either manually entered, or calculated by position
    * of the da Vinci grips when the camera pedal is activated. A vector is
-   * calculated between the right and left grips. The translation of the midpoint
-   * of this vector is added to the camera node position, and the change in orientation
-   * of this vector is added to the orientation of the camera node.
+   * calculated between the right and left grips. The translation of the
+   * midpoint of this vector is added to the camera node position, and the
+   * change in orientation of this vector is added to the orientation of the
+   * camera node.
    */
   void cameraUpdate();
-  //!Called after constructor
-  virtual void onInitialize();
-  //!Override from rviz display class.
-  virtual void update( float wall_dt, float ros_dt );
+  //! Called after constructor
+  void onInitialize() override;
+  //! Override from rviz display class.
+  void update(float, float) override;
 protected Q_SLOTS:
-  //!Resets or intializes camera and 3D cursor positions.
+  //! Resets or initializes camera and 3D cursor positions.
   virtual void cameraReset();
-  //!Sets up ROS subscribers and publishers
-  virtual void pubsubSetup();
-  //!Toggle for DVRK Gravity Compensation state
+  //! Sets up ROS subscribers and publishers
+  virtual void pubSubSetup();
+  //! Toggle for DVRK Gravity Compensation state
   virtual void gravityCompensation();
+
 private:
-  //!Creates viewports and cameras.
-  void cameraSetup();
-  //!Called when input message received.
-  /*!Contains primary input logic. Records input position and calculates change in
-   * input position. Updates cursor position then sends data to camera control and cursor publisher.
-   */
-  void inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input);
-  //!Publishes cursor position and grip state to interaction cursor 3D display type.
-  void publishCursorUpdate(int grab[2]);
-  //!Logic for grip state, used in interaction cursor 3D display type.
-  int getaGrip(bool, int);
-  bool camera_mode_, clutch_mode_;
-  bool prev_grab_[2];
+  bool camera_mode_ = false;
+  bool clutch_mode_ = false;
+  bool prev_grab_[2] = {false, false};
 
-  Ogre::Camera* camera_[2];
-  Ogre::SceneNode *camera_node_;
-  Ogre::Quaternion camera_quat_;
-  Ogre::SceneNode *target_node_;
-  Ogre::Viewport *viewport_[2];
-  Ogre::RenderWindow *window_;
+  Ogre::Camera* camera_[2] = {nullptr, nullptr};
+  Ogre::SceneNode* camera_node_ = nullptr;
+  Ogre::Quaternion camera_quat_{};
+  Ogre::Viewport* viewport_[2] = {nullptr, nullptr};
+  Ogre::RenderWindow* window_ = nullptr;
 
-  Ogre::Vector3 initial_cvect_;
-  Ogre::Vector3 camera_ipd_;
-  Ogre::Vector3 camera_offset_;
-  Ogre::Vector3 cursor_offset_[2];
-  Ogre::Vector3 camera_pos_;
-  Ogre::Quaternion camera_ori_;
-  Ogre::Vector3 input_pos_[2];
-  Ogre::Vector3 input_change_[2];
+  Ogre::Vector3 initial_c_vect_{};
+  Ogre::Vector3 camera_ipd_{0.03, 0.0, 0.0};
+  Ogre::Vector3 camera_offset_{0.0, -3.0, 1.5};
+  Ogre::Vector3 camera_pos_{};
+  Ogre::Vector3 input_pos_[2]{};
+  Ogre::Vector3 input_change_[2]{};
 
   ros::NodeHandle nh_;
-  ros::Subscriber subscriber_input_;
-  ros::Publisher publisher_rhcursor_;
-  ros::Publisher publisher_lhcursor_;
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+  ros::Subscriber input_sub_;
+#pragma clang diagnostic pop
+  ros::Publisher cursor_right_pub_;
+  ros::Publisher cursor_left_pub_;
   ros::Publisher pub_robot_state_[2];
 
-  rviz::VectorProperty *prop_cam_focus_;
-  rviz::QuaternionProperty *property_camrot_;
-  rviz::BoolProperty *prop_manual_coords_;
-  rviz::VectorProperty *prop_camera_posit_;
-  rviz::VectorProperty *prop_input_scalar_;
-  rviz::RosTopicProperty *prop_ros_topic_;
-  rviz::BoolProperty *prop_gravity_comp_;
-  rviz::BoolProperty *prop_cam_reset_;
+  std::unique_ptr<rviz::RosTopicProperty> prop_ros_topic_;
+  std::unique_ptr<rviz::VectorProperty> prop_cam_focus_;
+  std::unique_ptr<rviz::QuaternionProperty> property_camera_rot_;
+  //  std::unique_ptr<rviz::BoolProperty> prop_manual_coords_;
+  std::unique_ptr<rviz::VectorProperty> prop_camera_posit_;
+  std::unique_ptr<rviz::VectorProperty> prop_input_scalar_;
+  std::unique_ptr<rviz::BoolProperty> prop_gravity_comp_;
+  std::unique_ptr<rviz::BoolProperty> prop_cam_reset_;
 
-  rviz::RenderWidget *render_widget_;
+  std::unique_ptr<rviz::RenderWidget> render_widget_;
 
-  geometry_msgs::Pose cursor_[2];
+  geometry_msgs::Pose cursor_[2]{};
 
+  //! Creates viewports and cameras.
+  void cameraSetup();
+  //! Called when input message received.
+  /*!Contains primary input logic. Records input position and calculates change
+   * in input position. Updates cursor position then sends data to camera
+   * control and cursor publisher.
+   */
+  void inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input);
+  //! Publishes cursor position and grip state to interaction cursor 3D display
+  //! type.
+  void publishCursorUpdate(const int grab[2]);
+  //! Logic for grip state, used in interaction cursor 3D display type.
+  int getAGrip(bool grab, int i);
 };
 
 } // namespace rvinci
 
 //#endif
-
