@@ -45,7 +45,7 @@ qt5_wrap_cpp(MOC_FILES
 add_library(rvinci
   src/rvinci_display.cpp
   src/rvinci_gui.cpp
-  #  src/rvinci_pose.cpp
+  src/gui_elements/bottom_panel.cpp
   ${MOC_FILES}
 )
 

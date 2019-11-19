@@ -7,11 +7,6 @@
 
 namespace rvinci {
 
-namespace {
-constexpr double kScrubberTop = 0.8;
-constexpr double kScrubberPadding = 0.02;
-} // namespace
-
 RvinciGui::~RvinciGui() {
   if (overlay_) {
     Ogre::OverlayManager::getSingleton().destroy(overlay_);
@@ -19,20 +14,15 @@ RvinciGui::~RvinciGui() {
 };
 
 void RvinciGui::initialize() {
+  if (overlay_) return;
+
   ROS_INFO("Adding the overlay");
 
   Ogre::OverlayManager& overlay_manager = Ogre::OverlayManager::getSingleton();
 
   overlay_ = overlay_manager.create("NasaInterface");
-  auto panel = dynamic_cast<Ogre::PanelOverlayElement*>(
-      overlay_manager.createOverlayElement("Panel", "NasaInterfacePanel"));
 
-  panel->setPosition(kScrubberPadding, kScrubberTop);
-  panel->setDimensions(1. - 2 * kScrubberPadding,
-                       1. - kScrubberTop - kScrubberPadding);
-  panel->setMaterialName("BaseWhite");
-
-  overlay_->add2D(panel);
+  overlay_->add2D(bottom_panel_.create());
 }
 
 void RvinciGui::show() {

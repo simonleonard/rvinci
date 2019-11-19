@@ -374,6 +374,7 @@ void rvinciDisplay::onEnable() {
   if (!camera_[kLeft]) {
     cameraSetup();
   }
+
   render_widget_->setVisible(true);
   cameraReset();
 }
