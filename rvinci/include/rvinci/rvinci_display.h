@@ -40,13 +40,14 @@
 #include <ros/ros.h>
 
 #include <rvinci_input_msg/rvinci_input.h>
-#endif
+#include "rvinci/rvinci_gui.h"
 
 namespace Ogre {
 class SceneNode;
 class RenderWindow;
 class Camera;
 class Viewport;
+class Overlay;
 } // namespace Ogre
 
 namespace rviz {
@@ -116,6 +117,8 @@ protected Q_SLOTS:
   virtual void gravityCompensation();
 
 private:
+  RvinciGui gui_;
+
   bool camera_mode_ = false;
   bool clutch_mode_ = false;
   bool prev_grab_[2] = {false, false};
@@ -172,4 +175,4 @@ private:
 
 } // namespace rvinci
 
-//#endif
+#endif

@@ -36,7 +36,8 @@
 #include <interaction_cursor_msgs/InteractionCursorUpdate.h>
 
 #include <OGRE/OgreRenderWindow.h>
-#include <OGRE/OgreSceneNode.h>
+#include <OgreOverlayManager.h>
+#include <OgrePanelOverlayElement.h>
 
 #include <ros/package.h>
 
@@ -62,7 +63,7 @@ constexpr size_t kLeft = 0;
 constexpr size_t kRight = 1;
 } // namespace
 
-rvinciDisplay::rvinciDisplay() {
+rvinciDisplay::rvinciDisplay() : gui_() {
 
   std::string rviz_path = ros::package::getPath(ROS_PACKAGE_NAME);
   Ogre::ResourceGroupManager::getSingleton().addResourceLocation(
@@ -84,9 +85,9 @@ rvinciDisplay::rvinciDisplay() {
   prop_gravity_comp_ = std::make_unique<rviz::BoolProperty>(
       "Release da Vinci", false, "Put da Vinci in Gravity Compensation mode",
       this, SLOT(gravityCompensation()));
-//  prop_manual_coords_ = std::make_unique<rviz::BoolProperty>(
-//      "Use typed coordinates", false,
-//      "Camera movement controlled by typed coordinates", this);
+  //  prop_manual_coords_ = std::make_unique<rviz::BoolProperty>(
+  //      "Use typed coordinates", false,
+  //      "Camera movement controlled by typed coordinates", this);
   prop_cam_focus_ = std::make_unique<rviz::VectorProperty>(
       "Camera Focus", Ogre::Vector3(0, 0, 0), "Focus Point of Camera", this);
   prop_camera_posit_ = std::make_unique<rviz::VectorProperty>(
@@ -133,6 +134,8 @@ void rvinciDisplay::onInitialize() {
   window_->addListener(this);
   camera_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode();
   scene_manager_->getRootSceneNode()->createChildSceneNode();
+
+  gui_.initialize();
 
   pubSubSetup();
 }
@@ -357,12 +360,14 @@ void rvinciDisplay::cameraUpdate() {
 }
 
 void rvinciDisplay::preRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) {
+  gui_.show();
   cameraUpdate();
 }
 
 void rvinciDisplay::postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) {
   window_ = render_widget_->getRenderWindow();
   window_->swapBuffers();
+  gui_.hide();
 }
 
 void rvinciDisplay::onEnable() {
