@@ -117,24 +117,39 @@ protected Q_SLOTS:
   virtual void gravityCompensation();
 
 private:
+  struct PerEyeData {
+    bool prev_grab = false;
+
+    Ogre::Camera* camera = nullptr;
+    Ogre::Viewport* viewport = nullptr;
+
+    Ogre::Vector3 input_pos{};
+    Ogre::Vector3 input_change{};
+
+    geometry_msgs::Pose cursor;
+
+    ros::Publisher pub_robot_state;
+    ros::Publisher pub_gravity_comp;
+  };
+
   RvinciGui gui_;
+
+  PerEyeData left_{};
+  PerEyeData right_{};
+
+  std::array<std::reference_wrapper<PerEyeData>, 2> eyes_ = {left_, right_};
 
   bool camera_mode_ = false;
   bool clutch_mode_ = false;
-  bool prev_grab_[2] = {false, false};
 
-  Ogre::Camera* camera_[2] = {nullptr, nullptr};
   Ogre::SceneNode* camera_node_ = nullptr;
   Ogre::Quaternion camera_quat_{};
-  Ogre::Viewport* viewport_[2] = {nullptr, nullptr};
   Ogre::RenderWindow* window_ = nullptr;
 
   Ogre::Vector3 initial_c_vect_{};
   Ogre::Vector3 camera_ipd_{0.03, 0.0, 0.0};
   Ogre::Vector3 camera_offset_{0.0, -3.0, 1.5};
   Ogre::Vector3 camera_pos_{};
-  Ogre::Vector3 input_pos_[2]{};
-  Ogre::Vector3 input_change_[2]{};
 
   ros::NodeHandle nh_;
 #pragma clang diagnostic push
@@ -143,7 +158,6 @@ private:
 #pragma clang diagnostic pop
   ros::Publisher cursor_right_pub_;
   ros::Publisher cursor_left_pub_;
-  ros::Publisher pub_robot_state_[2];
 
   std::unique_ptr<rviz::RosTopicProperty> prop_ros_topic_;
   std::unique_ptr<rviz::VectorProperty> prop_cam_focus_;
@@ -156,8 +170,6 @@ private:
 
   std::unique_ptr<rviz::RenderWidget> render_widget_;
 
-  geometry_msgs::Pose cursor_[2]{};
-
   //! Creates viewports and cameras.
   void cameraSetup();
   //! Called when input message received.
@@ -168,9 +180,9 @@ private:
   void inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input);
   //! Publishes cursor position and grip state to interaction cursor 3D display
   //! type.
-  void publishCursorUpdate(const int grab[2]);
+  void publishCursorUpdate(int right_grab, int left_grab);
   //! Logic for grip state, used in interaction cursor 3D display type.
-  int getAGrip(bool grab, int i);
+  static int getAGrip(bool grab, PerEyeData &eye);
 };
 
 } // namespace rvinci
