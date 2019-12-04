@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rvinci_input_msg
   interaction_cursor_msgs
+        nasa_interface_msgs
   )
 
 # Boost
@@ -46,6 +47,7 @@ add_library(rvinci
   src/rvinci_display.cpp
   src/rvinci_gui.cpp
   src/gui_elements/bottom_panel.cpp
+  src/gui_elements/top_panel.cpp
   ${MOC_FILES}
 )
 

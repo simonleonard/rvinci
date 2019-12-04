@@ -1,4 +1,4 @@
-material Template/ScrubberDot
+material Template/DeleteIcon
   {
     technique
     {
@@ -6,7 +6,7 @@ material Template/ScrubberDot
       {
         texture_unit
         {
-          texture scrubber_handle.png
+          texture delete.png
         }
 
         scene_blend alpha_blend

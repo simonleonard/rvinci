@@ -95,7 +95,7 @@ rvinciDisplay::rvinciDisplay() : gui_() {
 }
 
 rvinciDisplay::~rvinciDisplay() {
-  for (PerEyeData &eye : eyes_) {
+  for (PerEyeData& eye : eyes_) {
     if (eye.viewport) {
       window_->removeViewport(0);
       eye.viewport = nullptr;
@@ -132,7 +132,8 @@ void rvinciDisplay::onInitialize() {
   camera_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode();
   scene_manager_->getRootSceneNode()->createChildSceneNode();
 
-  gui_.initialize();
+  //  context_->getSceneManager()->getRenderQueue()->getQueueGroup(Ogre::RENDER_QUEUE_OVERLAY)->addOrganisationMode();
+  gui_.initialize(nh_);
 
   pubSubSetup();
 }
@@ -175,7 +176,7 @@ void rvinciDisplay::gravityCompensation() {
 }
 
 void rvinciDisplay::inputCallback(
-    const rvinci_input_msg::rvinci_input::ConstPtr &r_input) {
+    const rvinci_input_msg::rvinci_input::ConstPtr& r_input) {
 
   // shifts incoming davinci orientation into world frame
   Ogre::Quaternion ori_shift(0, 0, -sqrt(0.5), sqrt(0.5));
@@ -189,7 +190,7 @@ void rvinciDisplay::inputCallback(
     Ogre::Quaternion cam_ori = left_.camera->getRealOrientation();
     int grab[2];
     for (int i = 0; i < 2; ++i) {
-      PerEyeData &eye = eyes_[i];
+      PerEyeData& eye = eyes_[i];
       // getting absolute and delta position of grippers, for use in cam and
       // cursor.
       Ogre::Vector3 old_input = eye.input_pos;
@@ -212,7 +213,7 @@ void rvinciDisplay::inputCallback(
       geometry_msgs::Pose cursor_pose;
 
       for (int i = 0; i < 2; ++i) {
-        PerEyeData &eye = eyes_[i];
+        PerEyeData& eye = eyes_[i];
         eye.cursor.position.x += eye.input_change.x;
         eye.cursor.position.y += eye.input_change.y;
         eye.cursor.position.z += eye.input_change.z;
@@ -248,7 +249,7 @@ void rvinciDisplay::inputCallback(
   } else {
     // to avoid an erroneously large input_update_ following clutched movement
     for (int i = 0; i < 2; ++i) {
-      PerEyeData &eye = eyes_[i];
+      PerEyeData& eye = eyes_[i];
       geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
       Ogre::Quaternion offset(0.7071, 0.7071, 0, 0);
       eye.input_pos =
@@ -259,28 +260,28 @@ void rvinciDisplay::inputCallback(
   }
 }
 
-void rvinciDisplay::publishCursorUpdate(int right_grab, int left_grab) {
+void rvinciDisplay::publishCursorUpdate(int left_grab, int right_grab) {
   // fixed frame is a parent member from RViz Display, pointing to selected
   // world frame in rviz;
   std::string frame = context_->getFixedFrame().toStdString();
   interaction_cursor_msgs::InteractionCursorUpdate cursor_left;
   interaction_cursor_msgs::InteractionCursorUpdate cursor_right;
 
-  cursor_right.pose.header.frame_id = frame;
-  cursor_right.pose.header.stamp = ros::Time::now();
-  cursor_right.pose.pose = right_.cursor;
-  cursor_right.button_state = right_grab;
-
   cursor_left.pose.header.frame_id = frame;
   cursor_left.pose.header.stamp = ros::Time::now();
   cursor_left.pose.pose = left_.cursor;
   cursor_left.button_state = left_grab;
 
-  cursor_right_pub_.publish(cursor_right);
+  cursor_right.pose.header.frame_id = frame;
+  cursor_right.pose.header.stamp = ros::Time::now();
+  cursor_right.pose.pose = right_.cursor;
+  cursor_right.button_state = right_grab;
+
   cursor_left_pub_.publish(cursor_left);
+  cursor_right_pub_.publish(cursor_right);
 }
 
-int rvinciDisplay::getAGrip(bool grab, PerEyeData &eye) {
+int rvinciDisplay::getAGrip(bool grab, PerEyeData& eye) {
   if (grab && !eye.prev_grab) {
     eye.prev_grab = grab;
     return 2; // Grab object
@@ -308,8 +309,9 @@ void rvinciDisplay::cameraSetup() {
   left_.camera = scene_manager_->createCamera("Left Camera");
   right_.camera = scene_manager_->createCamera("Right Camera");
   for (int i = 0; i < 2; ++i) {
-    PerEyeData &eye = eyes_[i];
+    PerEyeData& eye = eyes_[i];
 
+    eye.camera->addListener(this);
     camera_node_->attachObject(eye.camera);
     // static_cast silences a narrowing conversion warning
     eye.viewport = window_->addViewport(
@@ -324,7 +326,7 @@ void rvinciDisplay::cameraReset() {
   camera_node_->setOrientation(1, 0, 0, 0);
   camera_node_->setPosition(camera_pos_);
   for (int i = 0; i < 2; ++i) {
-    PerEyeData &eye = eyes_[i];
+    PerEyeData& eye = eyes_[i];
     eye.camera->setNearClipDistance(0.01f);
     eye.camera->setFarClipDistance(10000.0f);
     eye.camera->setFixedYawAxis(true, camera_node_->getOrientation() *
@@ -362,12 +364,12 @@ void rvinciDisplay::cameraUpdate() {
   }
 }
 
-void rvinciDisplay::preRenderTargetUpdate(const Ogre::RenderTargetEvent &evt) {
+void rvinciDisplay::preRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) {
   gui_.show();
   cameraUpdate();
 }
 
-void rvinciDisplay::postRenderTargetUpdate(const Ogre::RenderTargetEvent &evt) {
+void rvinciDisplay::postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) {
   window_ = render_widget_->getRenderWindow();
   window_->swapBuffers();
   gui_.hide();
@@ -380,13 +382,21 @@ void rvinciDisplay::onEnable() {
 
   render_widget_->setVisible(true);
   // The following two lines don't seem to work
-  window_->setFullscreen(false, 1280*2, 1024);
+  window_->setFullscreen(false, 1280 * 2, 1024);
   window_->reposition(1920 + 1920, 0);
 
   cameraReset();
 }
 
 void rvinciDisplay::onDisable() { render_widget_->setVisible(false); }
+
+void rvinciDisplay::cameraPreRenderScene(Ogre::Camera* camera) {
+  if (camera == left_.camera) {
+    // TODO Apply left camera disparity to overlay
+  } else if (camera == right_.camera) {
+    // TODO Apply right camera disparity to overlay
+  }
+}
 
 } // namespace rvinci
 

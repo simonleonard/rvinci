@@ -30,16 +30,24 @@
 #ifndef RVINCI_DISPLAY_H
 #define RVINCI_DISPLAY_H
 
-#include <QObject>
-
-#include "rviz/display.h"
-#include <OGRE/OgrePrerequisites.h>
-#include <OGRE/OgreRenderTargetListener.h>
-#include <OgreQuaternion.h>
-#include <OgreVector3.h>
+// ROS
 #include <ros/ros.h>
 
+// Qt
+#include <QObject>
+
+// RViz/Ogre
+#include <OgreCamera.h>
+#include <OgrePrerequisites.h>
+#include <OgreQuaternion.h>
+#include <OgreRenderTargetListener.h>
+#include <OgreVector3.h>
+#include <rviz/display.h>
+
+// Messages
 #include <rvinci_input_msg/rvinci_input.h>
+
+// Local
 #include "rvinci/rvinci_gui.h"
 
 namespace Ogre {
@@ -59,7 +67,9 @@ class RosTopicProperty;
 } // namespace rviz
 
 namespace rvinci {
-class rvinciDisplay : public rviz::Display, public Ogre::RenderTargetListener {
+class rvinciDisplay : public rviz::Display,
+                      public Ogre::RenderTargetListener,
+                      public Ogre::Camera::Listener {
   //! RVinci display plugin for RViz.
   /*! The RVinci display class is a plugin for RViz which is designed to allow
    * a da Vinci surgical console to navigate the RViz environment and manipulate
@@ -85,6 +95,9 @@ public:
 
   //! Override from Ogre::RenderTargetListener
   void postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) override;
+
+  // Used to apply the proper dispairity to each eye
+  void cameraPreRenderScene(Ogre::Camera* camera) override;
 
 protected:
   //! Called after onInitialize.
@@ -180,9 +193,9 @@ private:
   void inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input);
   //! Publishes cursor position and grip state to interaction cursor 3D display
   //! type.
-  void publishCursorUpdate(int right_grab, int left_grab);
+  void publishCursorUpdate(int left_grab, int right_grab);
   //! Logic for grip state, used in interaction cursor 3D display type.
-  static int getAGrip(bool grab, PerEyeData &eye);
+  static int getAGrip(bool grab, PerEyeData& eye);
 };
 
 } // namespace rvinci
