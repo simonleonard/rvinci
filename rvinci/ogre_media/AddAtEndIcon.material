@@ -1,4 +1,4 @@
-material Template/RecordIcon
+material Template/AddAtEndIcon
   {
     technique
     {
@@ -14,7 +14,7 @@ material Template/RecordIcon
         }
         texture_unit
         {
-          texture record.png
+          texture add_at_end.png
         }
       }
     }

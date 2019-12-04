@@ -1,4 +1,4 @@
-#include "rvinci/gui_elements/top_panel.h"
+#include "rvinci/gui_elements/waypoint_info_panel.h"
 
 #include <ros/ros.h>
 
@@ -20,30 +20,31 @@ constexpr Ogre::Real kPanelHeight = 0.05;
 constexpr Ogre::Real kPanelPadding = 0.05;
 
 // Relative to container
-constexpr Ogre::Real kWaypointNameTop = 0.1;
-constexpr Ogre::Real kWaypointNameHeight = 0.8;
+constexpr Ogre::Real kActionHintTop = 0.1;
+constexpr Ogre::Real kActionHintHeight = 0.8;
 
 // Computed
 constexpr Ogre::Real kPanelWidth = 1. - 2. * kPanelPadding;
-constexpr Ogre::Real kAbsoluteWaypointNameTop = kWaypointNameTop * kPanelHeight;
-constexpr Ogre::Real kAbsoluteWaypointNameHeight =
-    kWaypointNameHeight * kPanelHeight;
+constexpr Ogre::Real kAbsoluteActionHintTop = kActionHintTop * kPanelHeight;
+constexpr Ogre::Real kAbsoluteActionHintHeight =
+    kActionHintHeight * kPanelHeight;
 } // namespace
 
-Ogre::OverlayContainer* TopPanel::create() {
+Ogre::OverlayContainer* WaypointInfoPanel::create() {
   Ogre::OverlayManager& overlay_manager = Ogre::OverlayManager::getSingleton();
 
   main_panel_ = dynamic_cast<Ogre::PanelOverlayElement*>(
-      overlay_manager.createOverlayElement("Panel", "NasaInterfaceTopPanel"));
+      overlay_manager.createOverlayElement("Panel",
+                                           "NasaInterfaceWaypointInfoPanel"));
   main_panel_->setPosition(kPanelPadding, kPanelTop);
   main_panel_->setDimensions(kPanelWidth, kPanelHeight);
   main_panel_->setMaterialName("Template/PartialTransparent");
 
   waypoint_name_ = dynamic_cast<Ogre::TextAreaOverlayElement*>(
-      overlay_manager.createOverlayElement("TextArea", "WaypointLabel"));
-  waypoint_name_->setPosition(0.5 - kPanelPadding, kAbsoluteWaypointNameTop);
+      overlay_manager.createOverlayElement("TextArea", "NasaWaypointLabel"));
+  waypoint_name_->setPosition(0.5 - kPanelPadding, kAbsoluteActionHintTop);
   waypoint_name_->setDimensions(kPanelWidth, kPanelHeight);
-  waypoint_name_->setCharHeight(kAbsoluteWaypointNameHeight);
+  waypoint_name_->setCharHeight(kAbsoluteActionHintHeight);
   // Liberation Sans is the only font installed by default when I tested
   waypoint_name_->setFontName("Liberation Sans");
   waypoint_name_->setColour(Ogre::ColourValue(1., 1., 1.));
@@ -54,7 +55,7 @@ Ogre::OverlayContainer* TopPanel::create() {
   return main_panel_;
 }
 
-void TopPanel::destroy() {
+void WaypointInfoPanel::destroy() {
   Ogre::OverlayManager& overlay_manager = Ogre::OverlayManager::getSingleton();
   if (main_panel_) {
     overlay_manager.destroyOverlayElement(main_panel_);
@@ -66,7 +67,7 @@ void TopPanel::destroy() {
     waypoint_name_ = nullptr;
   }
 }
-void TopPanel::setWaypointName(std::string name) {
+void WaypointInfoPanel::setWaypointName(std::string name) {
   // Truncate name if needed
   // TODO Make this encoding-safe (with Qt QFontMetricsF::elidedText?)
   if (name.length() > kMaxCharacters) {

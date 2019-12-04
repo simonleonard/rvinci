@@ -8,3 +8,4 @@ Attribution
 - Record by Adrien Coquet from the Noun Project
 - database by Adrien Coquet from the Noun Project
 - Cloud by Adrien Coquet from the Noun Project
+- Stop by Adrien Coquet from the Noun Project

@@ -46,10 +46,11 @@ qt5_wrap_cpp(MOC_FILES
 add_library(rvinci
   src/rvinci_display.cpp
   src/rvinci_gui.cpp
-  src/gui_elements/bottom_panel.cpp
-  src/gui_elements/top_panel.cpp
+  src/gui_elements/waypoint_info_panel.cpp
+  src/gui_elements/waypoints_control_panel.cpp
+  src/gui_elements/preview_panel.cpp
   ${MOC_FILES}
-)
+        src/gui_elements/icon_button.cpp)
 
 target_link_libraries(rvinci
   ${catkin_LIBRARIES}

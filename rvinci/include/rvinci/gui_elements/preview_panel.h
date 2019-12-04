@@ -1,7 +1,9 @@
-#ifndef RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_BOTTOM_PANEL_H_
-#define RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_BOTTOM_PANEL_H_
+#ifndef RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_PREVIEW_PANEL_H_
+#define RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_PREVIEW_PANEL_H_
 
 #include <OgreOverlayManager.h>
+
+#include "icon_button.h"
 
 namespace Ogre {
 class PanelOverlayElement;
@@ -10,22 +12,26 @@ class PanelOverlayElement;
 namespace rvinci {
 namespace gui_elements {
 
-class BottomPanel {
+class PreviewPanel {
 public:
-  BottomPanel() = default;
-  ~BottomPanel() { destroy(); };
+  PreviewPanel() = default;
+  ~PreviewPanel() { destroy(); };
 
   Ogre::OverlayContainer* create();
   void destroy();
 
   void setScrubberPosition(double position);
 
+  void setPreviewButtonPlaying(bool is_playing);
+
+  void setExecuteAbortButtonExecuting(bool is_executing);
+
 private:
   Ogre::PanelOverlayElement* main_panel_;
   Ogre::PanelOverlayElement* scrubber_bar_;
   Ogre::PanelOverlayElement* scrubber_dot_;
-  Ogre::PanelOverlayElement* play_pause_button_;
-  Ogre::PanelOverlayElement* execute_button_;
+  IconButton play_pause_button_;
+  IconButton execute_button_;
 
   void createScrubber(Ogre::OverlayManager& overlay_manager);
   void createPlayPause(Ogre::OverlayManager& overlay_manager);
@@ -35,4 +41,4 @@ private:
 } // namespace gui_elements
 } // namespace rvinci
 
-#endif // RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_BOTTOM_PANEL_H_
+#endif // RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_PREVIEW_PANEL_H_

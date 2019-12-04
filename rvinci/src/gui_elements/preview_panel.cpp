@@ -1,4 +1,4 @@
-#include "rvinci/gui_elements/bottom_panel.h"
+#include "rvinci/gui_elements/preview_panel.h"
 
 #include <ros/ros.h>
 
@@ -35,23 +35,25 @@ constexpr Ogre::Real kScrubberDotZero =
 
 } // namespace
 
-Ogre::OverlayContainer* BottomPanel::create() {
+Ogre::OverlayContainer* PreviewPanel::create() {
   Ogre::OverlayManager& overlay_manager = Ogre::OverlayManager::getSingleton();
 
   main_panel_ = dynamic_cast<Ogre::PanelOverlayElement*>(
       overlay_manager.createOverlayElement("Panel",
-                                           "NasaInterfaceBottomPanel"));
+                                           "NasaInterfacePreviewPanel"));
   main_panel_->setPosition(kPanelPadding, kPanelTop);
   main_panel_->setDimensions(kPanelWidth, kPanelHeight);
   main_panel_->setMaterialName("Template/PartialTransparent");
 
   createScrubber(overlay_manager);
+  //  main_panel_->addChild()
+
   createPlayPause(overlay_manager);
   createExecute(overlay_manager);
 
   return main_panel_;
 }
-void BottomPanel::createScrubber(Ogre::OverlayManager& overlay_manager) {
+void PreviewPanel::createScrubber(Ogre::OverlayManager& overlay_manager) {
   // NOTE Siblings within a container have equal z-order, and ties are resolved
   // by name order. The numbers in the names are chosen to get the correct order
   scrubber_bar_ = dynamic_cast<Ogre::PanelOverlayElement*>(
@@ -86,45 +88,32 @@ void BottomPanel::createScrubber(Ogre::OverlayManager& overlay_manager) {
   main_panel_->addChild(scrubber_dot_);
 }
 
-void BottomPanel::createPlayPause(Ogre::OverlayManager& overlay_manager) {
-  play_pause_button_ = dynamic_cast<Ogre::PanelOverlayElement*>(
-      overlay_manager.createOverlayElement("Panel", "PlayPauseButton"));
-  play_pause_button_->setVerticalAlignment(Ogre::GVA_CENTER);
-  play_pause_button_->setPosition(kButtonPadding + kButtonMargin,
-                                  kButtonPadding - kButtonWidth / 2.);
-  play_pause_button_->setDimensions(kButtonWidth - 2 * kButtonPadding,
-                                    kButtonWidth - 2 * kButtonPadding);
-  play_pause_button_->setMaterialName("Template/PlayIcon");
-  Ogre::UserObjectBindings& play_pause_bindings =
-      play_pause_button_->getUserObjectBindings();
-  play_pause_bindings.setUserAny("rvinci_interaction_mode",
-                                 Ogre::Any(std::string("click")));
-  play_pause_bindings.setUserAny("rvinci_publish_topic",
-                                 Ogre::Any(std::string("~rvinci_play_pause")));
-
-  main_panel_->addChild(play_pause_button_);
+void PreviewPanel::createPlayPause(Ogre::OverlayManager& overlay_manager) {
+  main_panel_->addChild(
+      play_pause_button_.create(overlay_manager, "PlayPauseButton")
+          .atPosition(kButtonPadding + kButtonMargin,
+                      kButtonPadding - kButtonWidth / 2.)
+          .withDimensions(kButtonWidth - 2 * kButtonPadding,
+                          kButtonWidth - 2 * kButtonPadding)
+          .withMaterial("Template/PlayIcon")
+          .withClickTopic("~rvinci_play_pause")
+          .done());
 }
 
-void BottomPanel::createExecute(Ogre::OverlayManager& overlay_manager) {
-  execute_button_ = dynamic_cast<Ogre::PanelOverlayElement*>(
-      overlay_manager.createOverlayElement("Panel", "ExecuteButton"));
-  execute_button_->setVerticalAlignment(Ogre::GVA_CENTER);
-  execute_button_->setHorizontalAlignment(Ogre::GHA_RIGHT);
-  execute_button_->setPosition(-(kButtonPadding + kButtonWidth - kButtonMargin),
-                               kButtonPadding - kButtonWidth / 2.);
-  execute_button_->setDimensions(kButtonWidth - 2 * kButtonPadding,
-                                 kButtonWidth - 2 * kButtonPadding);
-  execute_button_->setMaterialName("Template/UploadIcon");
-  Ogre::UserObjectBindings& bindings = execute_button_->getUserObjectBindings();
-  bindings.setUserAny("rvinci_interaction_mode",
-                      Ogre::Any(std::string("click")));
-  bindings.setUserAny("rvinci_publish_topic",
-                      Ogre::Any(std::string("~rvinci_execute")));
-
-  main_panel_->addChild(execute_button_);
+void PreviewPanel::createExecute(Ogre::OverlayManager& overlay_manager) {
+  main_panel_->addChild(
+      execute_button_.create(overlay_manager, "ExecuteButton")
+          .alignedRight()
+          .atPosition(-(kButtonPadding + kButtonWidth - kButtonMargin),
+                      kButtonPadding - kButtonWidth / 2.)
+          .withDimensions(kButtonWidth - 2 * kButtonPadding,
+                          kButtonWidth - 2 * kButtonPadding)
+          .withMaterial("Template/UploadIcon")
+          .withClickTopic("~rvinci_execute_abort")
+          .done());
 }
 
-void BottomPanel::destroy() {
+void PreviewPanel::destroy() {
   Ogre::OverlayManager& overlay_manager = Ogre::OverlayManager::getSingleton();
   if (main_panel_) {
     overlay_manager.destroyOverlayElement(main_panel_);
@@ -140,22 +129,22 @@ void BottomPanel::destroy() {
     overlay_manager.destroyOverlayElement(scrubber_dot_);
     scrubber_dot_ = nullptr;
   }
-
-  if (play_pause_button_) {
-    overlay_manager.destroyOverlayElement(play_pause_button_);
-    play_pause_button_ = nullptr;
-  }
-
-  if (execute_button_) {
-    overlay_manager.destroyOverlayElement(execute_button_);
-    execute_button_ = nullptr;
-  }
 }
 
-void BottomPanel::setScrubberPosition(double position) {
+void PreviewPanel::setScrubberPosition(double position) {
   ROS_ASSERT(scrubber_dot_);
   scrubber_dot_->setLeft(kScrubberDotZero +
                          position * kAbsoluteScrubberBarWidth);
+}
+
+void PreviewPanel::setPreviewButtonPlaying(bool is_playing) {
+  play_pause_button_.setIcon(is_playing ? "Template/PauseIcon"
+                                        : "Template/PlayIcon");
+}
+
+void PreviewPanel::setExecuteAbortButtonExecuting(bool is_executing) {
+  execute_button_.setIcon(is_executing ? "Template/UploadIcon"
+                                       : "Template/StopIcon");
 }
 
 } // namespace gui_elements

@@ -1,5 +1,5 @@
-#ifndef RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_TOP_PANEL_H_
-#define RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_TOP_PANEL_H_
+#ifndef RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_WAYPOINT_INFO_PANEL_H_
+#define RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_WAYPOINT_INFO_PANEL_H_
 
 #include <OgreOverlayManager.h>
 
@@ -11,10 +11,10 @@ class TextAreaOverlayElement;
 namespace rvinci {
 namespace gui_elements {
 
-class TopPanel {
+class WaypointInfoPanel {
 public:
-  TopPanel() = default;
-  ~TopPanel() { destroy(); };
+  WaypointInfoPanel() = default;
+  ~WaypointInfoPanel() { destroy(); };
 
   Ogre::OverlayContainer* create();
   void destroy();
@@ -30,4 +30,4 @@ private:
 } // namespace rvinci
 
 
-#endif // RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_TOP_PANEL_H_
+#endif // RVINCI_INCLUDE_RVINCI_GUI_ELEMENTS_WAYPOINT_INFO_PANEL_H_

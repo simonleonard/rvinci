@@ -12,10 +12,13 @@
 #include <geometry_msgs/Point.h>
 #include <nasa_interface_msgs/WaypointStamped.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Empty.h>
+#include <std_msgs/Bool.h>
 
 // Local
-#include <rvinci/gui_elements/bottom_panel.h>
-#include <rvinci/gui_elements/top_panel.h>
+#include <rvinci/gui_elements/waypoint_info_panel.h>
+#include <rvinci/gui_elements/waypoints_control_panel.h>
+#include <rvinci/gui_elements/preview_panel.h>
 
 namespace Ogre {
 class Overlay;
@@ -35,23 +38,39 @@ public:
 private:
   Ogre::Overlay* overlay_ = nullptr;
 
-  gui_elements::BottomPanel bottom_panel_{};
-  gui_elements::TopPanel top_panel_{};
+  gui_elements::WaypointInfoPanel waypoint_info_panel_{};
+  gui_elements::WaypointsControlPanel waypoints_control_panel_{};
+  gui_elements::PreviewPanel preview_panel_{};
+
+  nasa_interface_msgs::WaypointStamped::ConstPtr latest_waypoint_;
+  bool is_playing_ = false;
+  bool is_executing_ = false;
+
+  // External publishers
+  ros::Publisher set_preview_playing_pub_;
+  ros::Publisher set_executing_pub_;
 
   // External subscribers
   ros::Subscriber current_waypoint_sub_;
   ros::Subscriber preview_position_sub_;
-
-  nasa_interface_msgs::WaypointStamped::ConstPtr latest_waypoint_;
+  ros::Subscriber preview_is_playing_sub_;
+  ros::Subscriber is_executing_sub_;
 
   // Internal subscribers (from interaction_cursor_rviz)
+  ros::Subscriber play_pause_click_sub_;
+  ros::Subscriber execute_abort_click_sub_;
+
 
   // External callbacks
-  void onPreviewPositionChange(const std_msgs::Float64::ConstPtr& msg);
   void onCurrentWaypointChange(
       const nasa_interface_msgs::WaypointStamped::ConstPtr& msg);
+  void onPreviewPositionChange(const std_msgs::Float64::ConstPtr& msg);
+  void onPreviewIsPlayingChange(const std_msgs::Bool::ConstPtr& msg);
+  void onIsExecutingChange(const std_msgs::Bool::ConstPtr& msg);
 
   // Internal callbacks (from interaction_cursor_rviz)
+  void onPlayPauseClick(const std_msgs::Empty&);
+  void onExecuteAbortClick(const std_msgs::Empty&);
 };
 
 } // namespace rvinci
