@@ -4,7 +4,7 @@
   -->
   <node name="basic_controls" type="basic_controls" pkg="interactive_marker_tutorials" />
   <node name="dvrk_to_rvinci" type="dvrk_to_rvinci" pkg="dvrk_to_rvinci" output="screen"/>
-  <node name="rvinci_dvrk_interaction_controller" type="rvinci_dvrk_interaction_controller" pkg="rvinci_dvrk_interaction_controller"/>
+  <node name="rvinci_dvrk_haptics" type="rvinci_dvrk_haptics" pkg="rvinci_dvrk_haptics"/>
   <node name="rvinci_demo" type="rvinci_demo" pkg="rvinci_demo" />
   <!--
   <node name="rviz" pkg="rviz" type="rviz"
