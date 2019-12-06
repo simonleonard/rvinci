@@ -42,18 +42,18 @@ Ogre::OverlayContainer* WaypointsControlPanel::create() {
 
   // Prepend 1 to the name to force it to sort before its siblings, which
   // translates to being rendered below its siblings. Otherwise it blocks
-  // button hover/click.
-  action_hint_ = dynamic_cast<Ogre::TextAreaOverlayElement*>(
-      overlay_manager.createOverlayElement("TextArea", "1NasaActionHint"));
-  action_hint_->setPosition(0.5 - kPanelPadding, kAbsoluteActionHintTop);
-  action_hint_->setDimensions(kPanelWidth, kPanelHeight);
-  action_hint_->setCharHeight(kAbsoluteActionHintHeight);
-  // Liberation Sans is the only font installed by default when I tested
-  action_hint_->setFontName("Liberation Sans");
-  action_hint_->setColour(Ogre::ColourValue(1., 1., 1.));
-  action_hint_->setAlignment(Ogre::TextAreaOverlayElement::Center);
-  action_hint_->setCaption("");
-  main_panel_->addChild(action_hint_);
+  // button hover/click. UPDATE: THAT DOESNT WORK
+//  action_hint_ = dynamic_cast<Ogre::TextAreaOverlayElement*>(
+//      overlay_manager.createOverlayElement("TextArea", "1NasaActionHint"));
+//  action_hint_->setPosition(0.5 - kPanelPadding, kAbsoluteActionHintTop);
+//  action_hint_->setDimensions(kPanelWidth, kPanelHeight);
+//  action_hint_->setCharHeight(kAbsoluteActionHintHeight);
+//  // Liberation Sans is the only font installed by default when I tested
+//  action_hint_->setFontName("Liberation Sans");
+//  action_hint_->setColour(Ogre::ColourValue(1., 1., 1.));
+//  action_hint_->setAlignment(Ogre::TextAreaOverlayElement::Center);
+//  action_hint_->setCaption("");
+//  main_panel_->addChild(action_hint_);
 
   main_panel_->addChild(
       add_here_button_.create(overlay_manager, "AddHereButton")
@@ -97,10 +97,10 @@ void WaypointsControlPanel::destroy() {
     main_panel_ = nullptr;
   }
 
-  if (action_hint_) {
-    overlay_manager.destroyOverlayElement(action_hint_);
-    action_hint_ = nullptr;
-  }
+//  if (action_hint_) {
+//    overlay_manager.destroyOverlayElement(action_hint_);
+//    action_hint_ = nullptr;
+//  }
 }
 
 void WaypointsControlPanel::setDeleteEnabled(bool delete_enabled) {

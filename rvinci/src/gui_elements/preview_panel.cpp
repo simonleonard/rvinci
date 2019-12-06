@@ -65,6 +65,7 @@ void PreviewPanel::createScrubber(Ogre::OverlayManager& overlay_manager) {
   scrubber_bar_->setDimensions(kAbsoluteScrubberBarWidth,
                                kAbsoluteScrubberBarHeight);
   scrubber_bar_->setMaterialName("Template/Blue");
+  scrubber_bar_->hide(); // Disabled by default
   main_panel_->addChild(scrubber_bar_);
 
   scrubber_dot_ = dynamic_cast<Ogre::PanelOverlayElement*>(
@@ -74,6 +75,7 @@ void PreviewPanel::createScrubber(Ogre::OverlayManager& overlay_manager) {
   scrubber_dot_->setDimensions(kAbsoluteScrubberDotSize,
                                kAbsoluteScrubberDotSize);
   scrubber_dot_->setMaterialName("Template/ScrubberDot");
+  scrubber_dot_->hide(); // Disabled by default
   Ogre::UserObjectBindings& dot_bindings =
       scrubber_dot_->getUserObjectBindings();
   dot_bindings.setUserAny("rvinci_interaction_mode",
@@ -97,6 +99,7 @@ void PreviewPanel::createPlayPause(Ogre::OverlayManager& overlay_manager) {
                           kButtonWidth - 2 * kButtonPadding)
           .withMaterial("Template/PlayIcon")
           .withClickTopic("~rvinci_play_pause")
+          .disabled()
           .done());
 }
 
@@ -110,6 +113,7 @@ void PreviewPanel::createExecute(Ogre::OverlayManager& overlay_manager) {
                           kButtonWidth - 2 * kButtonPadding)
           .withMaterial("Template/UploadIcon")
           .withClickTopic("~rvinci_execute_abort")
+          .disabled()
           .done());
 }
 
@@ -145,6 +149,21 @@ void PreviewPanel::setPreviewButtonPlaying(bool is_playing) {
 void PreviewPanel::setExecuteAbortButtonExecuting(bool is_executing) {
   execute_button_.setIcon(is_executing ? "Template/UploadIcon"
                                        : "Template/StopIcon");
+}
+
+void PreviewPanel::setPreviewEnabled(bool preview_enabled) {
+  play_pause_button_.setEnabled(preview_enabled);
+  if (preview_enabled) {
+    scrubber_bar_->show();
+    scrubber_dot_->show();
+  } else {
+    scrubber_bar_->hide();
+    scrubber_dot_->hide();
+  }
+}
+
+void PreviewPanel::setExecuteEnabled(bool execute_enabled) {
+  execute_button_.setEnabled(execute_enabled);
 }
 
 } // namespace gui_elements

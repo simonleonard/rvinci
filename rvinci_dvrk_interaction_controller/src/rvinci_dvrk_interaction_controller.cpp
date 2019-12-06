@@ -1,27 +1,10 @@
+#include "rvinci_dvrk_interaction_controller.h"
+
 #include <cmath>
 #include <geometry_msgs/Wrench.h>
 #include <ros/ros.h>
 #include <rvinci_input_msg/rvinci_input.h>
 #include <tf/transform_datatypes.h>
-
-class dvrk_wrench {
-public:
-  dvrk_wrench();
-  void inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input);
-  double vector_magnitude_;
-  tf::Vector3 ori_magnitude_[2];
-  ros::Rate* r_;
-
-private:
-  ros::NodeHandle n;
-  ros::Subscriber rvinci_sub;
-  ros::Publisher dvrk_pub[2];
-  double strength_[2]; // current and previous
-  double torqmag_[2];
-  double torqmago_[2];
-  void publishWrench(tf::Vector3, double, tf::Transform[]);
-  tf::Vector3 getVector(rvinci_input_msg::rvinci_input);
-};
 
 dvrk_wrench::dvrk_wrench() {
   rvinci_sub = n.subscribe<rvinci_input_msg::rvinci_input>(
@@ -109,7 +92,7 @@ void dvrk_wrench::publishWrench(const tf::Vector3 vector, double magnitude,
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "dvrk_camera_mode");
+  ros::init(argc, argv, "rvinci_dvrk_interaction_controller");
   dvrk_wrench dvrkw;
   dvrkw.r_ = new ros::Rate(200);
   while (ros::ok()) {

@@ -55,12 +55,17 @@ void RvinciGui::initialize(ros::NodeHandle& nh) {
   current_waypoint_sub_ =
       nh.subscribe("waypoints/current", kQueueSize,
                    &RvinciGui::onCurrentWaypointChange, this);
+  trajectory_duration_sub_ =
+      nh.subscribe("trajectory_duration", kQueueSize,
+                   &RvinciGui::onTrajectoryDurationChange, this);
   preview_position_sub_ =
       nh.subscribe("preview_position", kQueueSize,
                    &RvinciGui::onPreviewPositionChange, this);
   preview_is_playing_sub_ =
       nh.subscribe("preview_playback_state", kQueueSize,
                    &RvinciGui::onPreviewIsPlayingChange, this);
+  is_executable_sub_ = nh.subscribe("plan/is_executable", kQueueSize,
+                                    &RvinciGui::onIsExecutableChange, this);
   is_executing_sub_ = nh.subscribe("plan/is_executing", kQueueSize,
                                    &RvinciGui::onIsExecutingChange, this);
 
@@ -152,6 +157,15 @@ void RvinciGui::onDeleteWaypointClick(const std_msgs::Empty&) {
   msg.waypoint_id = latest_waypoint_->waypoint.waypoint_id;
 
   delete_waypoint_pub_.publish(msg);
+}
+
+void RvinciGui::onTrajectoryDurationChange(
+    const std_msgs::Float64::ConstPtr& msg) {
+  preview_panel_.setPreviewEnabled(msg->data > 0);
+}
+
+void RvinciGui::onIsExecutableChange(const std_msgs::Bool::ConstPtr& msg) {
+  preview_panel_.setExecuteEnabled(msg->data);
 }
 
 } // namespace rvinci

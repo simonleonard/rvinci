@@ -26,6 +26,10 @@ public:
 
   void setExecuteAbortButtonExecuting(bool is_executing);
 
+  void setPreviewEnabled(bool preview_enabled);
+
+  void setExecuteEnabled(bool execute_enabled);
+
 private:
   Ogre::PanelOverlayElement* main_panel_;
   Ogre::PanelOverlayElement* scrubber_bar_;

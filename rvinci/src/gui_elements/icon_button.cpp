@@ -66,9 +66,11 @@ IconButton& IconButton::disabled() {
 }
 
 Ogre::PanelOverlayElement* IconButton::done() {
-  // Note setEnabled must be called even if the button is enabled already, to
-  // set up rvinci_interaction_mode
-  setEnabled(is_enabled_);
+  // We need the logic inside setEnabled to run regardless of what value
+  // isEnabled has. Simple solution: ensure the stored value is always
+  // different to the value we pass
+  is_enabled_ = !is_enabled_;
+  setEnabled(!is_enabled_); // note the double negation
   return panel_;
 }
 
@@ -83,12 +85,10 @@ void IconButton::setIcon(const std::string& material_name) {
 }
 
 void IconButton::setEnabled(bool is_enabled) {
-  // current disabled + command disabled must run, because that's how an
-  // initially disabled element gets its color faded, but current enabled +
-  // command enabled must not, because that could overwrite selected colors from
-  // interaction_cursor_rviz. This seems fragile but I don't have time to
-  // revisit it now.
-  if (is_enabled_ && is_enabled) return;
+  // This prevents us from overwriting color changes made inside
+  // interactive_marker_rviz. Note that the done() function intentionally
+  // circumvents this check.
+  if (is_enabled_ == is_enabled) return;
 
   is_enabled_ = is_enabled;
 

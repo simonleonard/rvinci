@@ -56,8 +56,10 @@ private:
 
   // External subscribers
   ros::Subscriber current_waypoint_sub_;
+  ros::Subscriber trajectory_duration_sub_;
   ros::Subscriber preview_position_sub_;
   ros::Subscriber preview_is_playing_sub_;
+  ros::Subscriber is_executable_sub_;
   ros::Subscriber is_executing_sub_;
 
   // Internal subscribers (from interaction_cursor_rviz)
@@ -70,8 +72,10 @@ private:
   // External callbacks
   void onCurrentWaypointChange(
       const nasa_interface_msgs::WaypointStamped::ConstPtr& msg);
+  void onTrajectoryDurationChange(const std_msgs::Float64::ConstPtr& msg);
   void onPreviewPositionChange(const std_msgs::Float64::ConstPtr& msg);
   void onPreviewIsPlayingChange(const std_msgs::Bool::ConstPtr& msg);
+  void onIsExecutableChange(const std_msgs::Bool::ConstPtr& msg);
   void onIsExecutingChange(const std_msgs::Bool::ConstPtr& msg);
 
   // Internal callbacks (from interaction_cursor_rviz)
