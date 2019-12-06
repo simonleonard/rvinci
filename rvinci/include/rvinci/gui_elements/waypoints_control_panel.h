@@ -20,11 +20,14 @@ public:
   Ogre::OverlayContainer* create();
   void destroy();
 
+  void setDeleteEnabled(bool delete_enabled);
+
 private:
   Ogre::PanelOverlayElement* main_panel_;
   Ogre::TextAreaOverlayElement* action_hint_;
   IconButton add_here_button_;
   IconButton add_at_end_button_;
+  IconButton delete_button_;
 };
 
 } // namespace gui_elements

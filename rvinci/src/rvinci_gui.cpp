@@ -10,6 +10,7 @@
 // Messages
 #include <nasa_interface_msgs/AddWaypoint.h>
 #include <nasa_interface_msgs/AddWaypointFromPath.h>
+#include <nasa_interface_msgs/DeleteWaypoint.h>
 
 namespace rvinci {
 namespace {
@@ -47,6 +48,8 @@ void RvinciGui::initialize(ros::NodeHandle& nh) {
           "waypoints/add_from_path", kQueueSize, false);
   add_waypoint_at_end_pub_ = nh.advertise<nasa_interface_msgs::AddWaypoint>(
       "waypoints/add", kQueueSize, false);
+  delete_waypoint_pub_ = nh.advertise<nasa_interface_msgs::DeleteWaypoint>(
+      "waypoints/delete", kQueueSize, false);
 
   // External
   current_waypoint_sub_ =
@@ -74,6 +77,9 @@ void RvinciGui::initialize(ros::NodeHandle& nh) {
   add_waypoint_at_end_click_sub_ =
       pnh.subscribe("rvinci_add_waypoint_at_end", kQueueSize,
                     &RvinciGui::onAddWaypointAtEndClick, this);
+  delete_waypoint_click_sub_ =
+      pnh.subscribe("rvinci_delete_waypoint", kQueueSize,
+                    &RvinciGui::onDeleteWaypointClick, this);
 }
 
 void RvinciGui::show() {
@@ -96,6 +102,9 @@ void RvinciGui::onCurrentWaypointChange(
     const nasa_interface_msgs::WaypointStamped::ConstPtr& msg) {
   latest_waypoint_ = msg;
   waypoint_info_panel_.setWaypointName(latest_waypoint_->waypoint.name);
+
+  waypoints_control_panel_.setDeleteEnabled(
+      !latest_waypoint_->waypoint.name.empty());
 }
 
 void RvinciGui::onPlayPauseClick(const std_msgs::Empty&) {
@@ -128,12 +137,21 @@ void RvinciGui::onAddWaypointHereClick(const std_msgs::Empty&) {
 
   add_waypoint_here_pub_.publish(msg);
 }
+
 void RvinciGui::onAddWaypointAtEndClick(const std_msgs::Empty&) {
   nasa_interface_msgs::AddWaypoint msg;
   msg.header.stamp = ros::Time::now();
   msg.after_waypoint_id = ""; // Empty string means after last waypoint
 
   add_waypoint_at_end_pub_.publish(msg);
+}
+
+void RvinciGui::onDeleteWaypointClick(const std_msgs::Empty&) {
+  nasa_interface_msgs::DeleteWaypoint msg;
+  msg.header.stamp = ros::Time::now();
+  msg.waypoint_id = latest_waypoint_->waypoint.waypoint_id;
+
+  delete_waypoint_pub_.publish(msg);
 }
 
 } // namespace rvinci

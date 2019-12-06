@@ -3,6 +3,7 @@
 
 #include <OgreOverlayManager.h>
 #include <OgrePrerequisites.h>
+#include <OgreBlendMode.h>
 
 namespace Ogre {
 class PanelOverlayElement;
@@ -24,12 +25,20 @@ public:
   IconButton& withMaterial(const std::string& name);
   IconButton& withClickTopic(const std::string& name);
   IconButton& alignedRight();
+  IconButton& disabled();
   Ogre::PanelOverlayElement* done();
 
   void setIcon(const std::string& material_name);
+  void setEnabled(bool is_enabled);
 
 private:
-  Ogre::PanelOverlayElement* panel_;
+  Ogre::PanelOverlayElement* panel_ = nullptr;
+  Ogre::LayerBlendModeEx original_color_op_;
+
+  bool is_enabled_ = true;
+
+  const Ogre::LayerBlendModeEx& getColorOp() const;
+  void setColorBlendMode(const Ogre::LayerBlendModeEx& color) const;
 };
 
 } // namespace gui_elements

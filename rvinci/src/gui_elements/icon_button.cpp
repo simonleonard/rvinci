@@ -6,6 +6,9 @@
 
 namespace rvinci {
 namespace gui_elements {
+namespace {
+constexpr Ogre::Real kDisabledColorSubtract = 0.5;
+} // namespace
 
 IconButton& IconButton::create(Ogre::OverlayManager& manager,
                                const std::string& name) {
@@ -40,17 +43,14 @@ IconButton& IconButton::withDimensions(Ogre::Real width, Ogre::Real height) {
 
 IconButton& IconButton::withMaterial(const std::string& name) {
   panel_->setMaterialName(name);
+  original_color_op_ = getColorOp();
+
   return *this;
 }
 
 IconButton& IconButton::withClickTopic(const std::string& name) {
-  // Setting the interaction mode here not because the method has click in the
-  // name, (a button's mode is always click) but because the interaction cursor
-  // will error if it sees an interaction mode without a topic.
-  Ogre::UserObjectBindings& bindings = panel_->getUserObjectBindings();
-  bindings.setUserAny("rvinci_interaction_mode",
-                      Ogre::Any(std::string("click")));
-  bindings.setUserAny("rvinci_publish_topic", Ogre::Any(name));
+  panel_->getUserObjectBindings().setUserAny("rvinci_publish_topic",
+                                             Ogre::Any(name));
 
   return *this;
 }
@@ -60,21 +60,56 @@ IconButton& IconButton::alignedRight() {
   return *this;
 }
 
-Ogre::PanelOverlayElement* IconButton::done() { return panel_; }
+IconButton& IconButton::disabled() {
+  is_enabled_ = false;
+  return *this;
+}
+
+Ogre::PanelOverlayElement* IconButton::done() {
+  // Note setEnabled must be called even if the button is enabled already, to
+  // set up rvinci_interaction_mode
+  setEnabled(is_enabled_);
+  return panel_;
+}
 
 void IconButton::setIcon(const std::string& material_name) {
   // Copy the color in case it's been modified by the interaction msgs
-  Ogre::LayerBlendModeEx color = panel_->getMaterial()
-                                     ->getTechnique(0)
-                                     ->getPass(0)
-                                     ->getTextureUnitState(0)
-                                     ->getColourBlendMode();
+  Ogre::LayerBlendModeEx color = getColorOp();
 
   panel_->setMaterialName(material_name);
 
   // Restore color
-  // Note: DON'T save a reference to this long getter, because it
-  // changes between the two calls
+  setColorBlendMode(color);
+}
+
+void IconButton::setEnabled(bool is_enabled) {
+  // current disabled + command disabled must run, because that's how an
+  // initially disabled element gets its color faded, but current enabled +
+  // command enabled must not, because that could overwrite selected colors from
+  // interaction_cursor_rviz. This seems fragile but I don't have time to
+  // revisit it now.
+  if (is_enabled_ && is_enabled) return;
+
+  is_enabled_ = is_enabled;
+
+  // Update interaction mode
+  std::string mode = is_enabled_ ? "click" : "disabled";
+  panel_->getUserObjectBindings().setUserAny("rvinci_interaction_mode",
+                                             Ogre::Any(mode));
+
+  // Update color
+  if (is_enabled_) {
+    setColorBlendMode(original_color_op_);
+  } else {
+    Ogre::LayerBlendModeEx c = original_color_op_;
+    c.colourArg1.r = std::max(0.f, c.colourArg1.r - kDisabledColorSubtract);
+    c.colourArg1.g = std::max(0.f, c.colourArg1.g - kDisabledColorSubtract);
+    c.colourArg1.b = std::max(0.f, c.colourArg1.b - kDisabledColorSubtract);
+    setColorBlendMode(c);
+  }
+}
+
+void IconButton::setColorBlendMode(const Ogre::LayerBlendModeEx& color) const {
   panel_->getMaterial()
       ->getTechnique(0)
       ->getPass(0)
@@ -83,5 +118,12 @@ void IconButton::setIcon(const std::string& material_name) {
                              color.colourArg1, color.colourArg2, color.factor);
 }
 
+const Ogre::LayerBlendModeEx& IconButton::getColorOp() const {
+  return panel_->getMaterial()
+      ->getTechnique(0)
+      ->getPass(0)
+      ->getTextureUnitState(0)
+      ->getColourBlendMode();
+}
 } // namespace gui_elements
 } // namespace rvinci

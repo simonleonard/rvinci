@@ -40,8 +40,11 @@ Ogre::OverlayContainer* WaypointsControlPanel::create() {
   main_panel_->setDimensions(kPanelWidth, kPanelHeight);
   main_panel_->setMaterialName("Template/PartialTransparent");
 
+  // Prepend 1 to the name to force it to sort before its siblings, which
+  // translates to being rendered below its siblings. Otherwise it blocks
+  // button hover/click.
   action_hint_ = dynamic_cast<Ogre::TextAreaOverlayElement*>(
-      overlay_manager.createOverlayElement("TextArea", "NasaActionHint"));
+      overlay_manager.createOverlayElement("TextArea", "1NasaActionHint"));
   action_hint_->setPosition(0.5 - kPanelPadding, kAbsoluteActionHintTop);
   action_hint_->setDimensions(kPanelWidth, kPanelHeight);
   action_hint_->setCharHeight(kAbsoluteActionHintHeight);
@@ -72,6 +75,18 @@ Ogre::OverlayContainer* WaypointsControlPanel::create() {
           .withClickTopic("~rvinci_add_waypoint_at_end")
           .done());
 
+  main_panel_->addChild(
+      delete_button_.create(overlay_manager, "DeleteButton")
+          .alignedRight()
+          .atPosition(-(kButtonPadding + kButtonWidth - kButtonMargin),
+                      kButtonPadding - kButtonWidth / 2.)
+          .withDimensions(kButtonWidth - 2 * kButtonPadding,
+                          kButtonWidth - 2 * kButtonPadding)
+          .withMaterial("Template/DeleteIcon")
+          .withClickTopic("~rvinci_delete_waypoint")
+          .disabled()
+          .done());
+
   return main_panel_;
 }
 
@@ -86,6 +101,10 @@ void WaypointsControlPanel::destroy() {
     overlay_manager.destroyOverlayElement(action_hint_);
     action_hint_ = nullptr;
   }
+}
+
+void WaypointsControlPanel::setDeleteEnabled(bool delete_enabled) {
+  delete_button_.setEnabled(delete_enabled);
 }
 
 } // namespace gui_elements

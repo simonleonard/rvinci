@@ -52,6 +52,7 @@ private:
   ros::Publisher set_executing_pub_;
   ros::Publisher add_waypoint_here_pub_;
   ros::Publisher add_waypoint_at_end_pub_;
+  ros::Publisher delete_waypoint_pub_;
 
   // External subscribers
   ros::Subscriber current_waypoint_sub_;
@@ -64,7 +65,7 @@ private:
   ros::Subscriber execute_abort_click_sub_;
   ros::Subscriber add_waypoint_here_click_sub_;
   ros::Subscriber add_waypoint_at_end_click_sub_;
-
+  ros::Subscriber delete_waypoint_click_sub_;
 
   // External callbacks
   void onCurrentWaypointChange(
@@ -78,6 +79,7 @@ private:
   void onExecuteAbortClick(const std_msgs::Empty&);
   void onAddWaypointHereClick(const std_msgs::Empty&);
   void onAddWaypointAtEndClick(const std_msgs::Empty&);
+  void onDeleteWaypointClick(const std_msgs::Empty&);
 };
 
 } // namespace rvinci
