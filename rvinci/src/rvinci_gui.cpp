@@ -1,9 +1,15 @@
 #include "rvinci/rvinci_gui.h"
 
+// ROS
 #include <ros/console.h>
 
+// RViz/OGRE
 #include <OgreOverlayManager.h>
 #include <OgrePanelOverlayElement.h>
+
+// Messages
+#include <nasa_interface_msgs/AddWaypoint.h>
+#include <nasa_interface_msgs/AddWaypointFromPath.h>
 
 namespace rvinci {
 namespace {
@@ -36,6 +42,11 @@ void RvinciGui::initialize(ros::NodeHandle& nh) {
       nh.advertise<std_msgs::Bool>("set_preview_playing", kQueueSize, false);
   set_executing_pub_ =
       nh.advertise<std_msgs::Bool>("plan/execute", kQueueSize, false);
+  add_waypoint_here_pub_ =
+      nh.advertise<nasa_interface_msgs::AddWaypointFromPath>(
+          "waypoints/add_from_path", kQueueSize, false);
+  add_waypoint_at_end_pub_ = nh.advertise<nasa_interface_msgs::AddWaypoint>(
+      "waypoints/add", kQueueSize, false);
 
   // External
   current_waypoint_sub_ =
@@ -57,6 +68,12 @@ void RvinciGui::initialize(ros::NodeHandle& nh) {
   execute_abort_click_sub_ =
       pnh.subscribe("rvinci_execute_abort", kQueueSize,
                     &RvinciGui::onExecuteAbortClick, this);
+  add_waypoint_here_click_sub_ =
+      pnh.subscribe("rvinci_add_waypoint_here", kQueueSize,
+                    &RvinciGui::onAddWaypointHereClick, this);
+  add_waypoint_at_end_click_sub_ =
+      pnh.subscribe("rvinci_add_waypoint_at_end", kQueueSize,
+                    &RvinciGui::onAddWaypointAtEndClick, this);
 }
 
 void RvinciGui::show() {
@@ -71,7 +88,8 @@ void RvinciGui::hide() {
 
 void RvinciGui::onPreviewPositionChange(
     const std_msgs::Float64::ConstPtr& msg) {
-  preview_panel_.setScrubberPosition(msg->data);
+  position_in_plan_ = msg->data;
+  preview_panel_.setScrubberPosition(position_in_plan_);
 }
 
 void RvinciGui::onCurrentWaypointChange(
@@ -101,6 +119,21 @@ void RvinciGui::onIsExecutingChange(const std_msgs::Bool::ConstPtr& msg) {
   is_executing_ = msg->data;
 
   preview_panel_.setExecuteAbortButtonExecuting(is_executing_);
+}
+
+void RvinciGui::onAddWaypointHereClick(const std_msgs::Empty&) {
+  nasa_interface_msgs::AddWaypointFromPath msg;
+  msg.header.stamp = ros::Time::now();
+  msg.position_in_path = position_in_plan_;
+
+  add_waypoint_here_pub_.publish(msg);
+}
+void RvinciGui::onAddWaypointAtEndClick(const std_msgs::Empty&) {
+  nasa_interface_msgs::AddWaypoint msg;
+  msg.header.stamp = ros::Time::now();
+  msg.after_waypoint_id = ""; // Empty string means after last waypoint
+
+  add_waypoint_at_end_pub_.publish(msg);
 }
 
 } // namespace rvinci

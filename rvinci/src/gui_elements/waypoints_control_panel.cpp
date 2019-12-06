@@ -59,7 +59,17 @@ Ogre::OverlayContainer* WaypointsControlPanel::create() {
           .withDimensions(kButtonWidth - 2 * kButtonPadding,
                           kButtonWidth - 2 * kButtonPadding)
           .withMaterial("Template/AddHereIcon")
-          .withClickTopic("~rvinci_add_here")
+          .withClickTopic("~rvinci_add_waypoint_here")
+          .done());
+
+  main_panel_->addChild(
+      add_at_end_button_.create(overlay_manager, "AddAtEndButton")
+          .atPosition(kButtonWidth + 2 * kButtonMargin,
+                      kButtonPadding - kButtonWidth / 2.)
+          .withDimensions(kButtonWidth - 2 * kButtonPadding,
+                          kButtonWidth - 2 * kButtonPadding)
+          .withMaterial("Template/AddAtEndIcon")
+          .withClickTopic("~rvinci_add_waypoint_at_end")
           .done());
 
   return main_panel_;

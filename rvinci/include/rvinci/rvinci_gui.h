@@ -45,10 +45,13 @@ private:
   nasa_interface_msgs::WaypointStamped::ConstPtr latest_waypoint_;
   bool is_playing_ = false;
   bool is_executing_ = false;
+  double position_in_plan_ = 0.0;
 
   // External publishers
   ros::Publisher set_preview_playing_pub_;
   ros::Publisher set_executing_pub_;
+  ros::Publisher add_waypoint_here_pub_;
+  ros::Publisher add_waypoint_at_end_pub_;
 
   // External subscribers
   ros::Subscriber current_waypoint_sub_;
@@ -59,6 +62,8 @@ private:
   // Internal subscribers (from interaction_cursor_rviz)
   ros::Subscriber play_pause_click_sub_;
   ros::Subscriber execute_abort_click_sub_;
+  ros::Subscriber add_waypoint_here_click_sub_;
+  ros::Subscriber add_waypoint_at_end_click_sub_;
 
 
   // External callbacks
@@ -71,6 +76,8 @@ private:
   // Internal callbacks (from interaction_cursor_rviz)
   void onPlayPauseClick(const std_msgs::Empty&);
   void onExecuteAbortClick(const std_msgs::Empty&);
+  void onAddWaypointHereClick(const std_msgs::Empty&);
+  void onAddWaypointAtEndClick(const std_msgs::Empty&);
 };
 
 } // namespace rvinci
