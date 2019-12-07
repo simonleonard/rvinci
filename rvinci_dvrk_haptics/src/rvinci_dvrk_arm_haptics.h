@@ -42,7 +42,6 @@ private:
   ros::Publisher position_pub_;
   ros::Publisher wrench_pub_;
   ros::Publisher cartesian_impedance_pub_;
-  ros::Publisher debug_cartesian_impedance_pub_;
 
   bool arm_status_ready_ = false;
   bool operator_present_ = false;

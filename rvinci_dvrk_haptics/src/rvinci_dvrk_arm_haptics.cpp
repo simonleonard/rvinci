@@ -5,7 +5,6 @@
 
 // Messages
 #include <cisst_msgs/prmCartesianImpedanceGains.h>
-#include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/Wrench.h>
 
 namespace rvinci_dvrk_haptics {
@@ -32,8 +31,6 @@ DvrkArmHaptics::DvrkArmHaptics(std::string arm_name, ros::NodeHandle& nh,
   cartesian_impedance_pub_ =
       nh.advertise<cisst_msgs::prmCartesianImpedanceGains>(
           topic_prefix + "set_cartesian_impedance_gains", 1, true);
-  debug_cartesian_impedance_pub_ = nh.advertise<geometry_msgs::PointStamped>(
-      topic_prefix + "debug_cartesian_impedance_gains", 1, true);
 }
 
 void DvrkArmHaptics::startBringup() {
@@ -132,7 +129,8 @@ void DvrkArmHaptics::updateCameraHaptics(const tf::Point& position,
   cisst_msgs::prmCartesianImpedanceGains msg;
   msg.header.stamp = ros::Time::now();
   msg.header.frame_id = latest_arm_pose_.header.frame_id;
-  // We don't need torque but it's best to provide valid messages
+  // We don't use torque, but if the quaternion is invalid the whole message
+  // gets thrown away.
   msg.TorqueOrientation.w = 1;
 
   tf::vector3TFToMsg(position_stamped, msg.ForcePosition);
@@ -145,11 +143,6 @@ void DvrkArmHaptics::updateCameraHaptics(const tf::Point& position,
   msg.PosDampingPos.x = -2;
   msg.PosDampingNeg.y = msg.PosDampingNeg.z = -0.5;
   msg.PosDampingPos.y = msg.PosDampingPos.z = -0.5;
-
-  geometry_msgs::PointStamped dbg;
-  dbg.header = latest_arm_pose_.header;
-  tf::pointTFToMsg(position_stamped, dbg.point);
-  debug_cartesian_impedance_pub_.publish(dbg);
 
   cartesian_impedance_pub_.publish(msg);
 }
