@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rvinci_input_msg
   geometry_msgs
+  std_msgs
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,7 +108,7 @@ include_directories(
 add_executable(rvinci_dvrk_haptics
         src/rvinci_dvrk_haptics.cpp
         src/rvinci_dvrk_haptics_node.cpp
-)
+        src/rvinci_dvrk_arm_haptics.cpp src/rvinci_dvrk_arm_haptics.h)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

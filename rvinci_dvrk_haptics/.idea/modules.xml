@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/dvrk_camera_mode.iml" filepath="$PROJECT_DIR$/.idea/dvrk_camera_mode.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/rvinci_dvrk_haptics.iml" filepath="$PROJECT_DIR$/.idea/rvinci_dvrk_haptics.iml" />
     </modules>
   </component>
 </project>
