@@ -10,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   std_msgs
   sensor_msgs
+  cisst_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
