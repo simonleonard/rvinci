@@ -23,7 +23,7 @@ DvrkArmHaptics::DvrkArmHaptics(std::string arm_name, ros::NodeHandle& nh,
   desired_state_pub_ = nh.advertise<std_msgs::String>(
       topic_prefix + "set_desired_state", 1, true);
   position_pub_ = nh.advertise<geometry_msgs::Pose>(
-      topic_prefix + "set_position_cartesian", 1, true);
+      topic_prefix + "set_position_goal_cartesian", 1, false);
   wrench_pub_ = nh.advertise<geometry_msgs::Wrench>(
       topic_prefix + "set_wrench_body", kQueueSize, false);
 }
