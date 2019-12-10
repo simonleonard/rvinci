@@ -23,7 +23,8 @@ RvinciGui::~RvinciGui() {
   }
 };
 
-void RvinciGui::initialize(ros::NodeHandle& nh) {
+void RvinciGui::initialize(ros::NodeHandle& nh,
+                           const Ogre::Vector3& input_scale) {
   if (overlay_) return;
 
   ROS_INFO("Adding the overlay");
@@ -36,7 +37,7 @@ void RvinciGui::initialize(ros::NodeHandle& nh) {
 
   overlay_->add2D(waypoint_info_panel_.create());
   overlay_->add2D(waypoints_control_panel_.create());
-  overlay_->add2D(preview_panel_.create());
+  overlay_->add2D(preview_panel_.create(input_scale));
 
   // External publishers
   set_preview_playing_pub_ =
@@ -166,6 +167,10 @@ void RvinciGui::onTrajectoryDurationChange(
 
 void RvinciGui::onIsExecutableChange(const std_msgs::Bool::ConstPtr& msg) {
   preview_panel_.setExecuteEnabled(msg->data);
+}
+
+void RvinciGui::changeInputScale(Ogre::Vector3 input_scale) {
+  preview_panel_.changeInputScale(input_scale);
 }
 
 } // namespace rvinci

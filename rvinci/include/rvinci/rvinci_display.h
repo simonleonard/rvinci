@@ -122,6 +122,7 @@ protected:
   //! Override from rviz display class.
   void update(float, float) override;
 protected Q_SLOTS:
+  virtual void changeInputScale();
   //! Resets or initializes camera and 3D cursor positions.
   virtual void cameraReset();
   //! Sets up ROS subscribers and publishers

@@ -35,7 +35,7 @@ constexpr Ogre::Real kScrubberDotZero =
 
 } // namespace
 
-Ogre::OverlayContainer* PreviewPanel::create() {
+Ogre::OverlayContainer* PreviewPanel::create(const Ogre::Vector3& input_scale) {
   Ogre::OverlayManager& overlay_manager = Ogre::OverlayManager::getSingleton();
 
   main_panel_ = dynamic_cast<Ogre::PanelOverlayElement*>(
@@ -45,7 +45,7 @@ Ogre::OverlayContainer* PreviewPanel::create() {
   main_panel_->setDimensions(kPanelWidth, kPanelHeight);
   main_panel_->setMaterialName("Template/PartialTransparent");
 
-  createScrubber(overlay_manager);
+  createScrubber(overlay_manager, input_scale);
   //  main_panel_->addChild()
 
   createPlayPause(overlay_manager);
@@ -53,7 +53,9 @@ Ogre::OverlayContainer* PreviewPanel::create() {
 
   return main_panel_;
 }
-void PreviewPanel::createScrubber(Ogre::OverlayManager& overlay_manager) {
+
+void PreviewPanel::createScrubber(Ogre::OverlayManager& overlay_manager,
+                                  const Ogre::Vector3& input_scale) {
   // NOTE Siblings within a container have equal z-order, and ties are resolved
   // by name order. The numbers in the names are chosen to get the correct order
   scrubber_bar_ = dynamic_cast<Ogre::PanelOverlayElement*>(
@@ -84,6 +86,7 @@ void PreviewPanel::createScrubber(Ogre::OverlayManager& overlay_manager) {
                           Ogre::Any(std::string("set_preview_position")));
   dot_bindings.setUserAny("rvinci_slide_limit_lower",
                           Ogre::Any(scrubber_bar_->getLeft()));
+  dot_bindings.setUserAny("rvinci_input_scale_x", Ogre::Any(input_scale.x));
   dot_bindings.setUserAny(
       "rvinci_slide_limit_upper",
       Ogre::Any(scrubber_bar_->getLeft() + scrubber_bar_->getWidth()));
@@ -164,6 +167,11 @@ void PreviewPanel::setPreviewEnabled(bool preview_enabled) {
 
 void PreviewPanel::setExecuteEnabled(bool execute_enabled) {
   execute_button_.setEnabled(execute_enabled);
+}
+
+void PreviewPanel::changeInputScale(Ogre::Vector3 input_scale) {
+  Ogre::UserObjectBindings& bindings = scrubber_dot_->getUserObjectBindings();
+  bindings.setUserAny("rvinci_input_scale_x", Ogre::Any(input_scale.x));
 }
 
 } // namespace gui_elements

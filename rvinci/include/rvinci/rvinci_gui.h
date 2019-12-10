@@ -30,10 +30,12 @@ class RvinciGui {
 public:
   ~RvinciGui();
 
-  void initialize(ros::NodeHandle& nh);
+  void initialize(ros::NodeHandle& nh, const Ogre::Vector3& input_scale);
 
   void show();
   void hide();
+
+  void changeInputScale(Ogre::Vector3 input_scale);
 
 private:
   Ogre::Overlay* overlay_ = nullptr;
@@ -61,6 +63,7 @@ private:
   ros::Subscriber preview_is_playing_sub_;
   ros::Subscriber is_executable_sub_;
   ros::Subscriber is_executing_sub_;
+  ros::Subscriber scrub_preview_sub_;
 
   // Internal subscribers (from interaction_cursor_rviz)
   ros::Subscriber play_pause_click_sub_;
@@ -77,6 +80,7 @@ private:
   void onPreviewIsPlayingChange(const std_msgs::Bool::ConstPtr& msg);
   void onIsExecutableChange(const std_msgs::Bool::ConstPtr& msg);
   void onIsExecutingChange(const std_msgs::Bool::ConstPtr& msg);
+  void onScrubPreview(const std_msgs::Float64::ConstPtr& msg);
 
   // Internal callbacks (from interaction_cursor_rviz)
   void onPlayPauseClick(const std_msgs::Empty&);

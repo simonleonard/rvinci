@@ -74,7 +74,8 @@ rvinciDisplay::rvinciDisplay() : gui_() {
       SLOT(pubSubSetup()));
   prop_input_scalar_ = std::make_unique<rviz::VectorProperty>(
       "Input Scalar", Ogre::Vector3(5, 5, 5),
-      "Scalar for X, Y, and Z of controller input motion", this);
+      "Scalar for X, Y, and Z of controller input motion", this,
+      SLOT(changeInputScale()));
   prop_cam_reset_ = std::make_unique<rviz::BoolProperty>(
       "Camera Reset", false, "Reset camera and cursor position", this,
       SLOT(cameraReset()));
@@ -132,8 +133,7 @@ void rvinciDisplay::onInitialize() {
   camera_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode();
   scene_manager_->getRootSceneNode()->createChildSceneNode();
 
-  //  context_->getSceneManager()->getRenderQueue()->getQueueGroup(Ogre::RENDER_QUEUE_OVERLAY)->addOrganisationMode();
-  gui_.initialize(nh_);
+  gui_.initialize(nh_, prop_input_scalar_->getVector());
 
   pubSubSetup();
 }
@@ -396,6 +396,10 @@ void rvinciDisplay::cameraPreRenderScene(Ogre::Camera* camera) {
   } else if (camera == right_.camera) {
     // TODO Apply right camera disparity to overlay
   }
+}
+
+void rvinciDisplay::changeInputScale() {
+  gui_.changeInputScale(prop_input_scalar_->getVector());
 }
 
 } // namespace rvinci
