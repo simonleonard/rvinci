@@ -1,15 +1,21 @@
 #ifndef RVINCI_DVRK_HAPTICS_SRC_RVINCI_DVRK_ARM_HAPTICS_H_
 #define RVINCI_DVRK_HAPTICS_SRC_RVINCI_DVRK_ARM_HAPTICS_H_
 
+// ROS
 #include <ros/ros.h>
-
-#include <geometry_msgs/PoseStamped.h>
-#include <std_msgs/String.h>
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 
+// Messages
+#include <cisst_msgs/prmCartesianImpedanceGains.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/String.h>
+
 namespace rvinci_dvrk_haptics {
 class DvrkArmHaptics {
+  enum class ArmMode { kNotReady, kCamera, kClutching, kOperating, kIdle };
+  enum class DvrkMode { kPosition, kEffort };
+
 public:
   DvrkArmHaptics(std::string arm_name, ros::NodeHandle& nh,
                  tf::TransformListener& listener,
@@ -20,10 +26,11 @@ public:
   bool isReady() const;
   tf::Point getPositionWorld() const;
 
+  void setIsMovingCamera(bool is_moving_camera);
+  void setIsClutching(bool is_clutching);
   void setOperatorPresent(bool operator_present);
 
-  void enterCameraMode();
-  void exitCameraMode();
+  void update();
   void updateCameraHaptics(const tf::Point& position,
                            const tf::Quaternion& orientation);
 
@@ -35,7 +42,9 @@ private:
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
   ros::Subscriber current_state_sub_;
+  ros::Subscriber arm_mode_sub_;
   ros::Subscriber position_sub_;
+  ros::Subscriber input_cartesian_impedance_sub_;
 #pragma clang diagnostic pop
 
   ros::Publisher desired_state_pub_;
@@ -43,18 +52,39 @@ private:
   ros::Publisher wrench_pub_;
   ros::Publisher cartesian_impedance_pub_;
 
+  ArmMode prev_arm_mode_ = ArmMode::kNotReady;
+  geometry_msgs::PoseStamped latest_arm_pose_;
+  cisst_msgs::prmCartesianImpedanceGains input_cartesian_impedance_;
+
+  // Factors that control arm mode
   bool arm_status_ready_ = false;
   bool operator_present_ = false;
-  bool camera_active_ = false;
+  bool is_moving_camera_ = false;
+  bool is_clutching_ = false;
 
-  geometry_msgs::PoseStamped latest_arm_pose_;
+  // Factors controlled by arm mode
+  DvrkMode latest_dvrk_mode_ = DvrkMode::kPosition;
 
+  // ROS Callbacks
   void onCurrentStateChange(const std_msgs::String& msg);
+  void onArmModeChange(const std_msgs::String& msg);
   void onCurrentPositionChange(const geometry_msgs::PoseStamped& msg);
+  void onSetInputCartesianImpedance(
+      const cisst_msgs::prmCartesianImpedanceGains& msg);
 
-  void updateArmMode();
-  void setEffortMode();
-  void setPositionMode();
+  // State machine functions
+  ArmMode getArmMode() const;
+  void enterCameraMode();
+  void enterClutchingMode();
+  void enterOperatingMode();
+  void enterIdleMode();
+
+  // DVRK Actions
+  void activateEffortMode();
+  void activatePositionMode();
+  void deactivateCartesianImpedance();
+  void publishInputCartesianImpedance();
+
 };
 } // namespace rvinci_dvrk_haptics
 

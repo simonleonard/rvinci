@@ -41,7 +41,6 @@ private:
 
   void onOperatorPresentChange(const sensor_msgs::Joy& msg);
   void enterCameraMode();
-  void exitCameraMode();
   void updateCameraHaptics(const tf::Point& left_pos,
                            const tf::Point& right_pos);
   void updateCameraHapticsForArm(DvrkArmHaptics& main_arm,

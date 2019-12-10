@@ -27,19 +27,19 @@ void DvrkHaptics::inputCallback(const rvinci_input::ConstPtr& rvinci_msg) {
   // Ignore messages if not ready yet
   if (!left_arm_.isReady() || !right_arm_.isReady()) return;
 
-  if (!is_camera_mode_ && rvinci_msg->camera) {
-    enterCameraMode();
-  } else if (is_camera_mode_ && !rvinci_msg->camera) {
-    exitCameraMode();
-  }
+  if (!is_camera_mode_ && rvinci_msg->camera) enterCameraMode();
+  is_camera_mode_ = rvinci_msg->camera;
+
+  left_arm_.setIsClutching(rvinci_msg->clutch);
+  right_arm_.setIsClutching(rvinci_msg->clutch);
+
+  left_arm_.setIsMovingCamera(rvinci_msg->camera);
+  right_arm_.setIsMovingCamera(rvinci_msg->camera);
+
+  left_arm_.update();
+  right_arm_.update();
 
   if (is_camera_mode_) {
-    //    tf::Point left_pos, right_pos;
-    //    tf::pointMsgToTF(rvinci_msg->gripper[rvinci_input::LEFT].pose.pose.position,
-    //                     left_pos);
-    //    tf::pointMsgToTF(
-    //        rvinci_msg->gripper[rvinci_input::RIGHT].pose.pose.position,
-    //        right_pos);
     updateCameraHaptics(left_arm_.getPositionWorld(),
                         right_arm_.getPositionWorld());
   }
@@ -62,25 +62,14 @@ void DvrkHaptics::onOperatorPresentChange(const sensor_msgs::Joy& msg) {
 }
 
 void DvrkHaptics::enterCameraMode() {
-  is_camera_mode_ = true;
-
   desired_arm_distance_ =
       left_arm_.getPositionWorld().distance(right_arm_.getPositionWorld());
-  left_arm_.enterCameraMode();
-  right_arm_.enterCameraMode();
 }
 
 void DvrkHaptics::updateCameraHaptics(const tf::Point& left_pos,
                                       const tf::Point& right_pos) {
   updateCameraHapticsForArm(left_arm_, left_pos, right_arm_, right_pos);
   updateCameraHapticsForArm(right_arm_, right_pos, left_arm_, left_pos);
-}
-
-void DvrkHaptics::exitCameraMode() {
-  is_camera_mode_ = false;
-
-  left_arm_.exitCameraMode();
-  right_arm_.exitCameraMode();
 }
 
 // Computes a set of cartesian impedance gains for |main_arm| that tries to
