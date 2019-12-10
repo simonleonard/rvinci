@@ -80,8 +80,11 @@ rvinciDisplay::rvinciDisplay() : gui_() {
       "Camera Reset", false, "Reset camera and cursor position", this,
       SLOT(cameraReset()));
   prop_gravity_comp_ = std::make_unique<rviz::BoolProperty>(
-      "Release da Vinci", false, "Put da Vinci in Gravity Compensation mode",
-      this, SLOT(gravityCompensation()));
+      "Gravity Compensation", false,
+      "Put da Vinci in Gravity Compensation mode", this,
+      SLOT(gravityCompensation()));
+  prop_disparity_ = std::make_unique<rviz::FloatProperty>(
+      "Disparity", 0.05, "Overlay GUI Disparity", this);
   //  prop_manual_coords_ = std::make_unique<rviz::BoolProperty>(
   //      "Use typed coordinates", false,
   //      "Camera movement controlled by typed coordinates", this);
@@ -392,9 +395,9 @@ void rvinciDisplay::onDisable() { render_widget_->setVisible(false); }
 
 void rvinciDisplay::cameraPreRenderScene(Ogre::Camera* camera) {
   if (camera == left_.camera) {
-    // TODO Apply left camera disparity to overlay
+    gui_.setOffset(-prop_disparity_->getFloat() / 2.);
   } else if (camera == right_.camera) {
-    // TODO Apply right camera disparity to overlay
+    gui_.setOffset(prop_disparity_->getFloat() / 2.);
   }
 }
 

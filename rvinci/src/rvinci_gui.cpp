@@ -173,4 +173,10 @@ void RvinciGui::changeInputScale(Ogre::Vector3 input_scale) {
   preview_panel_.changeInputScale(input_scale);
 }
 
+void RvinciGui::setOffset(double offset) {
+  if (!overlay_) return;
+
+  overlay_->setScroll(offset, 0.);
+}
+
 } // namespace rvinci

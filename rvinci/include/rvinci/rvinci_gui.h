@@ -37,6 +37,8 @@ public:
 
   void changeInputScale(Ogre::Vector3 input_scale);
 
+  void setOffset(double offset);
+
 private:
   Ogre::Overlay* overlay_ = nullptr;
 

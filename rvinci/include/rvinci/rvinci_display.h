@@ -46,6 +46,7 @@
 
 // Messages
 #include <rvinci_input_msg/rvinci_input.h>
+#include <rviz/properties/float_property.h>
 
 // Local
 #include "rvinci/rvinci_gui.h"
@@ -181,6 +182,7 @@ private:
   std::unique_ptr<rviz::VectorProperty> prop_input_scalar_;
   std::unique_ptr<rviz::BoolProperty> prop_gravity_comp_;
   std::unique_ptr<rviz::BoolProperty> prop_cam_reset_;
+  std::unique_ptr<rviz::FloatProperty> prop_disparity_;
 
   std::unique_ptr<rviz::RenderWidget> render_widget_;
 
