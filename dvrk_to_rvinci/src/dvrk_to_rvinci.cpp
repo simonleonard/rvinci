@@ -55,25 +55,8 @@ davinci_mtm::davinci_mtm()
 void davinci_mtm::getPose(const geometry_msgs::PoseStamped::ConstPtr& pose, int i)
 {
   rvmsg_.gripper[i].pose = *pose;
-  //Offsets to set davinci at 0 x and y, with an x offset for each gripper.
-  //rvmsg_.gripper[i].pose.pose.position.x += (2*i-1)*0.15;
-  //rvmsg_.gripper[i].pose.pose.position.y += 0.36;
-  //rvmsg_.gripper[i].pose.pose.position.z += 0.135;
-  
-  // Moving In Wrong Direction
-  rvmsg_.gripper[i].pose.pose.position.y = -rvmsg_.gripper[i].pose.pose.position.y;  
-  rvmsg_.gripper[i].pose.pose.position.z = -rvmsg_.gripper[i].pose.pose.position.z;  
-  //geometry_msgs::Pose tmp_davinci;
-  //rvmsg_.gripper[i].pose.pose.position.x = -rvmsg_.gripper[i].pose.pose.position.x;
-  //tmp_davinci.position.y = rvmsg_.gripper[i].pose.pose.position.y;
-  //rvmsg_.gripper[i].pose.pose.position.y = rvmsg_.gripper[i].pose.pose.position.z;
-  //rvmsg_.gripper[i].pose.pose.position.z = tmp_davinci.position.y;
-  /*
-  rvmsg_.gripper[i].pose.pose.position.x = rvmsg_.gripper[i].pose.pose.position.x;
-  rvmsg_.gripper[i].pose.pose.position.y = rvmsg_.gripper[i].pose.pose.position.y;
-  rvmsg_.gripper[i].pose.pose.position.z = rvmsg_.gripper[i].pose.pose.position.z;
-  */
 }
+
 void davinci_mtm::gripCallback(const std_msgs::Bool::ConstPtr& grab, int i)
 {
  rvmsg_.gripper[i].grab = grab->data;
