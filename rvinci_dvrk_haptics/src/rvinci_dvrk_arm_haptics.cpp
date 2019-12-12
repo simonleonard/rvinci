@@ -176,7 +176,11 @@ void DvrkArmHaptics::onCurrentPositionChange(
 
 void DvrkArmHaptics::onSetInputCartesianImpedance(
     const cisst_msgs::prmCartesianImpedanceGains& msg) {
-  input_cartesian_impedance_ = msg;
+  // Producer should stop sending messages when we tell it we're clutching, but
+  // there may still be messages in flight and we shouldn't store those.
+  if (getArmMode() == ArmMode::kClutching) return;
+
+    input_cartesian_impedance_ = msg;
 
   if (getArmMode() == ArmMode::kOperating) {
     cartesian_impedance_pub_.publish(input_cartesian_impedance_);
@@ -205,7 +209,9 @@ void DvrkArmHaptics::enterCameraMode() {
 void DvrkArmHaptics::enterClutchingMode() {
   // Ensure we're in effort mode with no impedance. Setting effort mode clears
   // impedance, so we only have to disable impedance if we're not setting effort
-  // mode.
+  // mode. We also reset the input cartesian impedance -- it will be inaccurate
+  // until the producer processes the clutch end event.
+  input_cartesian_impedance_ = createZeroCartesianImpedance();
   if (latest_dvrk_mode_ != DvrkMode::kEffort) {
     activateEffortMode();
   } else {
