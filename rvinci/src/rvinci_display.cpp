@@ -159,6 +159,10 @@ void rvinciDisplay::pubSubSetup() {
       nh_.advertise<interaction_cursor_msgs::InteractionCursorUpdate>(
           "rvinci_cursor_left/update", 10);
 
+  clutch_start_pub_ = nh_.advertise<std_msgs::Empty>("rvinci/clutch_start", 10);
+  clutch_end_pub_ =
+      nh_.advertise<geometry_msgs::Transform>("rvinci/clutch_end", 10);
+
   left_.pub_robot_state =
       nh_.advertise<std_msgs::String>("dvrk/MTML/set_robot_state", 10);
   right_.pub_robot_state =
@@ -186,6 +190,8 @@ void rvinciDisplay::inputCallback(
   ori_shift = ori_shift * Ogre::Quaternion(0, 0, 1, 0);
   Ogre::Quaternion in_ori[2];
 
+  bool was_clutch_mode = clutch_mode_;
+
   camera_mode_ = r_input->camera;
   clutch_mode_ = r_input->clutch;
 
@@ -201,8 +207,8 @@ void rvinciDisplay::inputCallback(
 
       Ogre::Quaternion offset(0.7071, 0.7071, 0, 0);
       eye.input_pos =
-          offset * Ogre::Vector3(pose.pose.position.x, pose.pose.position.y,
-                                 pose.pose.position.z);
+          offset * Ogre::Vector3(pose.pose.position.x, -pose.pose.position.y,
+                                 -pose.pose.position.z);
       eye.input_pos *= prop_input_scalar_->getVector();
       in_ori[i] =
           Ogre::Quaternion(pose.pose.orientation.w, pose.pose.orientation.x,
@@ -256,9 +262,50 @@ void rvinciDisplay::inputCallback(
       geometry_msgs::PoseStamped pose = r_input->gripper[i].pose;
       Ogre::Quaternion offset(0.7071, 0.7071, 0, 0);
       eye.input_pos =
-          offset * Ogre::Vector3(pose.pose.position.x, pose.pose.position.y,
-                                 pose.pose.position.z);
+          offset * Ogre::Vector3(pose.pose.position.x, -pose.pose.position.y,
+                                 -pose.pose.position.z);
       eye.input_pos *= prop_input_scalar_->getVector();
+    }
+  }
+
+  Ogre::Vector3 camera_avg_position =
+      (left_.camera->getRealPosition() + right_.camera->getRealPosition()) / 2.;
+  Ogre::Quaternion camera_avg_orientation =
+      Ogre::Quaternion::Slerp(0.5, left_.camera->getRealOrientation(),
+                              right_.camera->getRealOrientation(), true);
+
+  tf::StampedTransform camera_tf;
+  camera_tf.setOrigin(tf::Point(camera_avg_position.x, camera_avg_position.y,
+                                camera_avg_position.z));
+  camera_tf.setBasis(tf::Matrix3x3(
+      tf::Quaternion(camera_avg_orientation.x, camera_avg_orientation.y,
+                     camera_avg_orientation.z, camera_avg_orientation.w)));
+  camera_tf.stamp_ = ros::Time::now();
+  camera_tf.frame_id_ = fixed_frame_.toStdString();
+  camera_tf.child_frame_id_ = "rvinci_camera";
+
+  tf_broadcaster_.sendTransform(camera_tf);
+
+  if (!was_clutch_mode && clutch_mode_) {
+    for (int i = 0; i < 2; ++i) {
+      eyes_[i].get().pose_before_clutch = r_input->gripper[i].pose.pose;
+    }
+
+    clutch_start_pub_.publish(std_msgs::Empty());
+  } else if (was_clutch_mode && !clutch_mode_) {
+    // This case is when you exit clutch mode
+    // We need to find the transform between this pose and pose before clutch
+    // and publish it
+    for (int i = 0; i < 2; ++i) {
+      PerEyeData& eye = eyes_[i];
+      tf::Pose pose_before, pose_after;
+      tf::poseMsgToTF(eye.pose_before_clutch, pose_before);
+      tf::poseMsgToTF(r_input->gripper[i].pose.pose, pose_after);
+
+      geometry_msgs::Transform transform_msg;
+      tf::transformTFToMsg(pose_after * pose_before.inverse(), transform_msg);
+
+      clutch_end_pub_.publish(transform_msg);
     }
   }
 }

@@ -32,6 +32,7 @@
 
 // ROS
 #include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 
 // Qt
 #include <QObject>
@@ -142,6 +143,7 @@ private:
     Ogre::Vector3 input_change{};
 
     geometry_msgs::Pose cursor;
+    geometry_msgs::Pose pose_before_clutch;
 
     ros::Publisher pub_robot_state;
     ros::Publisher pub_gravity_comp;
@@ -167,12 +169,16 @@ private:
   Ogre::Vector3 camera_pos_{};
 
   ros::NodeHandle nh_;
+  tf::TransformBroadcaster tf_broadcaster_;
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
   ros::Subscriber input_sub_;
 #pragma clang diagnostic pop
   ros::Publisher cursor_right_pub_;
   ros::Publisher cursor_left_pub_;
+
+  ros::Publisher clutch_start_pub_;
+  ros::Publisher clutch_end_pub_;
 
   std::unique_ptr<rviz::RosTopicProperty> prop_ros_topic_;
   std::unique_ptr<rviz::VectorProperty> prop_cam_focus_;
