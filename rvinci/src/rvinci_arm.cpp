@@ -78,15 +78,9 @@ Ogre::Vector3
 RvinciArm::getCursorPosition(const Ogre::Vector3& arm_position,
                              const Ogre::Quaternion& camera_orientation,
                              const Ogre::Vector3& input_scale) {
-  // These values translate da Vinci to RViz. I have no idea how they were
-  // derived.
-  //  Ogre::Quaternion pos_shift(0.7071, 0.7071, 0, 0);
-  Ogre::Quaternion pos_shift = Ogre::Quaternion::IDENTITY;
-
   Ogre::Vector3 arm_position_delta = arm_position - prev_arm_position_;
 
-  Ogre::Vector3 cursor_position_delta =
-      pos_shift * (input_scale * arm_position_delta);
+  Ogre::Vector3 cursor_position_delta = input_scale * arm_position_delta;
 
   return prev_cursor_position_ + camera_orientation * cursor_position_delta;
 }
@@ -94,11 +88,7 @@ RvinciArm::getCursorPosition(const Ogre::Vector3& arm_position,
 Ogre::Quaternion
 RvinciArm::getCursorOrientation(const Ogre::Quaternion& arm_orientation,
                                 const Ogre::Quaternion& camera_orientation) {
-  // These values translate da Vinci to RViz. I have no idea how they were
-  // derived.
-  Ogre::Quaternion ori_shift(0, 0, -sqrt(0.5), sqrt(0.5));
-
-  return camera_orientation * (ori_shift * arm_orientation);
+  return camera_orientation * arm_orientation;
 }
 
 uint8_t RvinciArm::getGripperAction(bool grab) {
