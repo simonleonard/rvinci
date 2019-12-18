@@ -13,10 +13,13 @@ add_definitions(-DQT_NO_KEYWORDS -fPIC)
 # Catkin
 find_package(catkin REQUIRED COMPONENTS 
   rviz
+  tf2
   roscpp
   rvinci_input_msg
   interaction_cursor_msgs
-        nasa_interface_msgs
+  nasa_interface_msgs
+  geometry_msgs
+  cisst_msgs
   )
 
 # Boost

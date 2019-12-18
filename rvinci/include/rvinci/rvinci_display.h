@@ -47,6 +47,7 @@
 #include <rviz/properties/float_property.h>
 
 // Messages
+#include <cisst_msgs/prmCartesianImpedanceGains.h>
 #include <rvinci_input_msg/rvinci_input.h>
 #include <sensor_msgs/JointState.h>
 
@@ -154,6 +155,9 @@ private:
   ros::Subscriber right_joint_state_sub_;
 #pragma clang diagnostic pop
 
+  ros::Publisher left_desired_pose_pub_;
+  ros::Publisher right_desired_pose_pub_;
+
   std::unique_ptr<rviz::RosTopicProperty> prop_ros_topic_;
   std::unique_ptr<rviz::VectorProperty> prop_cam_focus_;
   std::unique_ptr<rviz::QuaternionProperty> property_camera_rot_;
@@ -176,6 +180,8 @@ private:
   double latest_right_roll_ = 0.;
   tf::Pose rod_wrt_world_{};
   tf::Pose camera_wrt_dvrk_{};
+  tf::Pose left_mtm_wrt_rod_{};
+  tf::Pose right_mtm_wrt_rod_{};
 
   bool got_first_message_ = false;
   bool prev_clutch_ = false;
@@ -194,12 +200,14 @@ private:
   std::unique_ptr<Ogre::Camera, CameraDeleter>
   createCamera(const std::string& name);
   std::unique_ptr<Ogre::Viewport, ViewportDeleter>
-  createViewport(Ogre::Camera* camera, int z_order,
-                                 float left) const;
+  createViewport(Ogre::Camera* camera, int z_order, float left) const;
 
   void resetCamera(Ogre::Camera* camera, const Ogre::Vector3& position) const;
   tf::Pose getMtmPose(const rvinci_input_msg::Gripper& gripper_msg,
                       const tf::Vector3& input_scale) const;
+  geometry_msgs::PoseStamped getCameraHaptics(const std::string& mtm_name, const ros::Time& stamp,
+                   const tf::Vector3& input_scale,
+                   const tf::Pose& haptics_pose);
 };
 
 } // namespace rvinci

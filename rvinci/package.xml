@@ -57,8 +57,8 @@
   <build_depend>rviz</build_depend>
   <run_depend>rviz</run_depend>
 
-  <build_depend>tf</build_depend>
-  <run_depend>tf</run_depend>
+  <build_depend>tf2</build_depend>
+  <run_depend>tf2</run_depend>
 
   <build_depend>roscpp</build_depend>
   <run_depend>roscpp</run_depend>
@@ -68,6 +68,12 @@
 
   <build_depend>nasa_interface_msgs</build_depend>
   <run_depend>nasa_interface_msgs</run_depend>
+
+  <build_depend>geometry_msgs</build_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+  <build_depend>cisst_msgs</build_depend>
+  <run_depend>cisst_msgs</run_depend>
 
   <export>
       <rviz plugin="${prefix}/plugin_description.xml"/>

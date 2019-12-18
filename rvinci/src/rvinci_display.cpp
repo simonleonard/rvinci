@@ -33,6 +33,9 @@
 
 // ROS
 #include <ros/package.h>
+// The following two includes are needed, no matter what the IDE says, otherwise
+// you get a linker error
+#include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 // RViz/OGRE
@@ -57,7 +60,6 @@
 
 // Messages
 #include <rvinci_input_msg/rvinci_input.h>
-#include <rviz/msg_conversions.h>
 #include <std_msgs/Bool.h>
 
 namespace rvinci {
@@ -100,6 +102,17 @@ Ogre::Quaternion quaternionTfToOgre(const tf::Quaternion& q) {
           static_cast<Ogre::Real>(q.y()), static_cast<Ogre::Real>(q.z())};
 }
 
+tf2::Vector3 tfToTf2(const tf::Vector3& v) { return {v.x(), v.y(), v.z()}; }
+
+tf2::Matrix3x3 tfToTf2(const tf::Matrix3x3& m) {
+  return {m[0][0], m[0][1], m[0][2], m[1][0], m[1][1],
+          m[1][2], m[2][0], m[2][1], m[2][2]};
+}
+
+tf2::Transform tfToTf2(const tf::Pose& pose) {
+  return tf2::Transform{tfToTf2(pose.getBasis()), tfToTf2(pose.getOrigin())};
+}
+
 // Has to have this type (including boost and the ConstPtr-ness) to match one
 // of the signatures of nh.subscribe()
 boost::function<void(const sensor_msgs::JointState::ConstPtr&)>
@@ -120,6 +133,11 @@ jointStateCallback(double* target) {
 
     *target = msg->position[roll_idx];
   };
+}
+
+double getRotationAngleAboutAxis(const tf::Quaternion& rotation,
+                                 const tf::Vector3& axis) {
+  return rotation.getAngle() * rotation.getAxis().dot(axis);
 }
 
 } // namespace
@@ -213,8 +231,14 @@ void rvinciDisplay::onChangeInputTopic() {
 
   left_joint_state_sub_ = nh_.subscribe("dvrk/MTML/state_joint_current", 10,
                                         jointStateCallback(&latest_left_roll_));
-  right_joint_state_sub_ = nh_.subscribe("dvrk/MTMR/state_joint_current", 10,
-                                        jointStateCallback(&latest_right_roll_));
+  right_joint_state_sub_ =
+      nh_.subscribe("dvrk/MTMR/state_joint_current", 10,
+                    jointStateCallback(&latest_right_roll_));
+
+  left_desired_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(
+      "dvrk/MTML/rvinci_pose_moving_camera", 10, false);
+  right_desired_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(
+      "dvrk/MTMR/rvinci_pose_moving_camera", 10, false);
 }
 
 void rvinciDisplay::onChangeGravityCompensation() {
@@ -308,6 +332,9 @@ void rvinciDisplay::inputCallback(const RvinciMessage::ConstPtr& rvinci_msg) {
       tf::Pose camera_wrt_world(quaternionOgreToTf(camera_orientation),
                                 pointOgreToTf(camera_node_->getPosition()));
       camera_wrt_dvrk_ = dvrk_wrt_world.inverse() * camera_wrt_world;
+
+      left_mtm_wrt_rod_ = rod_wrt_dvrk.inverse() * left_mtm_pose;
+      right_mtm_wrt_rod_ = rod_wrt_dvrk.inverse() * right_mtm_pose;
     } else {
       tf::Pose camera_wrt_world =
           rod_wrt_world_ * rod_wrt_dvrk.inverse() * camera_wrt_dvrk_;
@@ -315,6 +342,13 @@ void rvinciDisplay::inputCallback(const RvinciMessage::ConstPtr& rvinci_msg) {
       camera_node_->setPosition(pointTfToOgre(camera_wrt_world.getOrigin()));
       camera_node_->setOrientation(
           quaternionTfToOgre(camera_wrt_world.getRotation()));
+
+      left_desired_pose_pub_.publish(
+          getCameraHaptics("MTML", left_msg.pose.header.stamp, input_scale_tf,
+                           rod_wrt_dvrk * left_mtm_wrt_rod_));
+      right_desired_pose_pub_.publish(
+          getCameraHaptics("MTMR", right_msg.pose.header.stamp, input_scale_tf,
+                           rod_wrt_dvrk * right_mtm_wrt_rod_));
     }
 
     tf_broadcaster_.sendTransform({rod_wrt_world_, ros::Time::now(),
@@ -462,6 +496,62 @@ rvinciDisplay::createViewport(Ogre::Camera* camera, int z_order,
                                     ->getBackgroundColour());
 
   return std::unique_ptr<Ogre::Viewport, ViewportDeleter>(viewport);
+}
+
+geometry_msgs::PoseStamped rvinciDisplay::getCameraHaptics(
+    const std::string& mtm_name, const ros::Time& stamp,
+    const tf::Vector3& input_scale, const tf::Pose& haptics_pose) {
+  // I don't actually need the geometry_msgs::Pose, but TF2 is apparently
+  // incapable of transforming values of its OWN data types.
+  geometry_msgs::PoseStamped pose;
+  pose.header.frame_id = "world";
+  pose.header.stamp = stamp;
+  tf::poseTFToMsg(haptics_pose, pose.pose);
+
+  // These poses are in scaled coordinates. Need to de-scale them.
+  pose.pose.position.x /= input_scale.x();
+  pose.pose.position.y /= input_scale.y();
+  pose.pose.position.z /= input_scale.z();
+
+  return context_->getTF2BufferPtr()->transform(pose, mtm_name + "_top_panel");
+
+  //  cisst_msgs::prmCartesianImpedanceGains gains;
+  //  gains.header.stamp = ros::Time::now();
+  //  gains.header.frame_id = mtm_name;
+  //
+  //  gains.ForcePosition.x = pose.pose.position.x;
+  //  gains.ForcePosition.y = pose.pose.position.y;
+  //  gains.ForcePosition.z = pose.pose.position.z;
+  //
+  //  gains.ForceOrientation = pose.pose.orientation;
+  //
+  //  // The rod axis is z, for some reason. I would expect x but z is the one
+  //  that
+  //  // gives correct results.
+  //  gains.PosStiffPos.z = gains.PosStiffNeg.z = -200.;
+  //  gains.PosDampingPos.z = gains.PosDampingNeg.z = -2.;
+  //
+  //  // Roll orientation stiffness is unusable. For orientation we have to put
+  //  an
+  //  // axis on roll so we can exclude it from stiffness, but we still want the
+  //  // other two axes to have haptics. This code does swing twist
+  //  decomposition
+  //  // about the z axis (which is the roll axis) and keeps only the swing,
+  //  i.e.
+  //  // the part that does not rotate about the z axis.
+  //  // See https://stackoverflow.com/a/22401169
+  //  // Note the math for projecting onto the z axis is easy, so a few steps
+  //  can
+  //  // be skipped
+  //  tf::Quaternion rotation;
+  //  tf::quaternionMsgToTF(pose.pose.orientation, rotation);
+  //  tf::Quaternion twist(0., 0., rotation.z(), rotation.w());
+  //  twist.normalize(); // Important!
+  //  tf::quaternionTFToMsg(rotation * twist.inverse(),
+  //  gains.TorqueOrientation); gains.OriStiffPos.x = gains.OriStiffNeg.x =
+  //  -0.2; gains.OriStiffPos.y = gains.OriStiffNeg.y = -0.2;
+  //  gains.OriDampingNeg.z = gains.OriDampingPos.z = -0.01;
+  //  return gains;
 }
 
 } // namespace rvinci

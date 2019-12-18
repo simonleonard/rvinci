@@ -38,11 +38,6 @@ void DvrkHaptics::inputCallback(const rvinci_input::ConstPtr& rvinci_msg) {
 
   left_arm_.update();
   right_arm_.update();
-
-  if (is_camera_mode_) {
-    updateCameraHaptics(left_arm_.getPositionWorld(),
-                        right_arm_.getPositionWorld());
-  }
 }
 
 void DvrkHaptics::bringup() {
@@ -64,36 +59,6 @@ void DvrkHaptics::onOperatorPresentChange(const sensor_msgs::Joy& msg) {
 void DvrkHaptics::enterCameraMode() {
   desired_arm_distance_ =
       left_arm_.getPositionWorld().distance(right_arm_.getPositionWorld());
-}
-
-void DvrkHaptics::updateCameraHaptics(const tf::Point& left_pos,
-                                      const tf::Point& right_pos) {
-  updateCameraHapticsForArm(left_arm_, left_pos, right_arm_, right_pos);
-  updateCameraHapticsForArm(right_arm_, right_pos, left_arm_, left_pos);
-}
-
-// Computes a set of cartesian impedance gains for |main_arm| that tries to
-// keep it |desired_arm_distance_| distance from |other_arm|
-void DvrkHaptics::updateCameraHapticsForArm(DvrkArmHaptics& main_arm,
-                                            const tf::Point& main_arm_pos,
-                                            DvrkArmHaptics& other_arm,
-                                            const tf::Point& other_arm_pos) {
-  ROS_INFO("Desired distance: %f", desired_arm_distance_);
-  ROS_INFO("Actual distance: %f",
-           main_arm.getPositionWorld().distance(other_arm.getPositionWorld()));
-
-  // Find the point that main_arm would be at if it was at the desired distance
-  tf::Vector3 other_to_main_unit = (main_arm_pos - other_arm_pos).normalized();
-  tf::Point haptics_position =
-      other_arm_pos + other_to_main_unit * desired_arm_distance_;
-
-  // Find any orientation matrix that puts other_to_main_unit on one of the
-  // axes (here, arbitrarily chosen to be x)
-  tf::Vector3 axis = other_to_main_unit.cross(kXAxis);
-  double angle = other_to_main_unit.angle(kXAxis);
-  tf::Quaternion haptics_orientation(axis, angle);
-
-  main_arm.updateCameraHaptics(haptics_position, haptics_orientation);
 }
 
 } // namespace rvinci_dvrk_haptics

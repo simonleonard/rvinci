@@ -41,12 +41,6 @@ private:
 
   void onOperatorPresentChange(const sensor_msgs::Joy& msg);
   void enterCameraMode();
-  void updateCameraHaptics(const tf::Point& left_pos,
-                           const tf::Point& right_pos);
-  void updateCameraHapticsForArm(DvrkArmHaptics& main_arm,
-                                 const tf::Point& main_arm_pos,
-                                 DvrkArmHaptics& other_arm,
-                                 const tf::Point& other_arm_pos);
 };
 
 } // namespace rvinci_dvrk_haptics

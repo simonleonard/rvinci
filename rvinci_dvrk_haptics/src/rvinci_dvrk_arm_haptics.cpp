@@ -36,6 +36,9 @@ DvrkArmHaptics::DvrkArmHaptics(std::string arm_name, ros::NodeHandle& nh,
   input_cartesian_impedance_sub_ = nh.subscribe(
       topic_prefix + "rvinci_set_cartesian_impedance_gains", kQueueSize,
       &DvrkArmHaptics::onSetInputCartesianImpedance, this);
+  pose_moving_camera_sub_ =
+      nh.subscribe(topic_prefix + "rvinci_pose_moving_camera", kQueueSize,
+                   &DvrkArmHaptics::onSetDesiredPoseMovingCamera, this);
 
   desired_state_pub_ = nh.advertise<std_msgs::String>(
       topic_prefix + "set_desired_state", 1, true);
@@ -46,6 +49,10 @@ DvrkArmHaptics::DvrkArmHaptics(std::string arm_name, ros::NodeHandle& nh,
   cartesian_impedance_pub_ =
       nh.advertise<cisst_msgs::prmCartesianImpedanceGains>(
           topic_prefix + "set_cartesian_impedance_gains", 1, true);
+  lock_orientation_pub_ = nh.advertise<geometry_msgs::Quaternion>(
+      topic_prefix + "lock_orientation", 1, false);
+  unlock_orientation_pub_ = nh.advertise<std_msgs::Empty>(
+      topic_prefix + "unlock_orientation", 1, false);
 }
 
 void DvrkArmHaptics::startBringup() {
@@ -112,39 +119,6 @@ void DvrkArmHaptics::update() {
   prev_arm_mode_ = arm_mode;
 }
 
-void DvrkArmHaptics::updateCameraHaptics(const tf::Point& position,
-                                         const tf::Quaternion& orientation) {
-  tf::Stamped<tf::Point> position_stamped(
-      position, latest_arm_pose_.header.stamp, "world");
-  tf_listener_.transformPoint(latest_arm_pose_.header.frame_id,
-                              position_stamped, position_stamped);
-
-  tf::Stamped<tf::Quaternion> orientation_stamped(
-      orientation, latest_arm_pose_.header.stamp, "world");
-  tf_listener_.transformQuaternion(latest_arm_pose_.header.frame_id,
-                                   orientation_stamped, orientation_stamped);
-
-  cisst_msgs::prmCartesianImpedanceGains msg;
-  msg.header.stamp = ros::Time::now();
-  msg.header.frame_id = latest_arm_pose_.header.frame_id;
-  // We don't use torque, but if the quaternion is invalid the whole message
-  // gets thrown away.
-  msg.TorqueOrientation.w = 1;
-
-  tf::vector3TFToMsg(position_stamped, msg.ForcePosition);
-  tf::quaternionTFToMsg(orientation_stamped, msg.ForceOrientation);
-
-  msg.PosStiffPos.x = -100;
-  msg.PosStiffNeg.x = -100;
-
-  msg.PosDampingNeg.x = -2;
-  msg.PosDampingPos.x = -2;
-  msg.PosDampingNeg.y = msg.PosDampingNeg.z = -0.5;
-  msg.PosDampingPos.y = msg.PosDampingPos.z = -0.5;
-
-  cartesian_impedance_pub_.publish(msg);
-}
-
 void DvrkArmHaptics::onCurrentStateChange(const std_msgs::String& msg) {
   ROS_INFO("%s arm changed state to %s", arm_name_.c_str(), msg.data.c_str());
 
@@ -180,11 +154,32 @@ void DvrkArmHaptics::onSetInputCartesianImpedance(
   // there may still be messages in flight and we shouldn't store those.
   if (getArmMode() == ArmMode::kClutching) return;
 
-    input_cartesian_impedance_ = msg;
+  input_cartesian_impedance_ = msg;
 
   if (getArmMode() == ArmMode::kOperating) {
     cartesian_impedance_pub_.publish(input_cartesian_impedance_);
   }
+}
+
+void DvrkArmHaptics::onSetDesiredPoseMovingCamera(
+    const geometry_msgs::PoseStamped& msg) {
+  if (getArmMode() != ArmMode::kCamera) return;
+
+  cisst_msgs::prmCartesianImpedanceGains gains;
+  gains.header = msg.header;
+  gains.ForcePosition.x = msg.pose.position.x;
+  gains.ForcePosition.y = msg.pose.position.y;
+  gains.ForcePosition.z = msg.pose.position.z;
+  gains.ForceOrientation = msg.pose.orientation;
+
+  // We don't use torque haptics but the quaternion has to be valid
+  gains.TorqueOrientation.w = 1;
+
+  gains.PosStiffPos.z = gains.PosStiffNeg.z = -200.;
+  gains.PosDampingPos.z = gains.PosDampingNeg.z = -2.;
+
+  cartesian_impedance_pub_.publish(gains);
+  lock_orientation_pub_.publish(msg.pose.orientation);
 }
 
 DvrkArmHaptics::ArmMode DvrkArmHaptics::getArmMode() const {
@@ -204,6 +199,7 @@ void DvrkArmHaptics::enterCameraMode() {
   if (latest_dvrk_mode_ != DvrkMode::kEffort) {
     activateEffortMode();
   }
+  orientation_locked_ = true;
 }
 
 void DvrkArmHaptics::enterClutchingMode() {
@@ -217,6 +213,10 @@ void DvrkArmHaptics::enterClutchingMode() {
   } else {
     deactivateCartesianImpedance();
   }
+
+  if (orientation_locked_) {
+    unlockOrientation();
+  }
 }
 
 void DvrkArmHaptics::enterOperatingMode() {
@@ -229,6 +229,10 @@ void DvrkArmHaptics::enterOperatingMode() {
     activateEffortMode();
   } else {
     publishInputCartesianImpedance();
+  }
+
+  if (orientation_locked_) {
+    unlockOrientation();
   }
 }
 
@@ -259,6 +263,11 @@ void DvrkArmHaptics::deactivateCartesianImpedance() {
 void DvrkArmHaptics::publishInputCartesianImpedance() {
   input_cartesian_impedance_.header.stamp = ros::Time::now();
   cartesian_impedance_pub_.publish(input_cartesian_impedance_);
+}
+
+void DvrkArmHaptics::unlockOrientation() {
+  unlock_orientation_pub_.publish(std_msgs::Empty());
+  orientation_locked_ = true;
 }
 
 } // namespace rvinci_dvrk_haptics

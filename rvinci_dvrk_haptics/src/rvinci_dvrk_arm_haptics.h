@@ -31,8 +31,6 @@ public:
   void setOperatorPresent(bool operator_present);
 
   void update();
-  void updateCameraHaptics(const tf::Point& position,
-                           const tf::Quaternion& orientation);
 
 private:
   const std::string arm_name_;
@@ -45,12 +43,15 @@ private:
   ros::Subscriber arm_mode_sub_;
   ros::Subscriber position_sub_;
   ros::Subscriber input_cartesian_impedance_sub_;
+  ros::Subscriber pose_moving_camera_sub_;
 #pragma clang diagnostic pop
 
   ros::Publisher desired_state_pub_;
   ros::Publisher position_pub_;
   ros::Publisher wrench_pub_;
   ros::Publisher cartesian_impedance_pub_;
+  ros::Publisher lock_orientation_pub_;
+  ros::Publisher unlock_orientation_pub_;
 
   ArmMode prev_arm_mode_ = ArmMode::kNotReady;
   geometry_msgs::PoseStamped latest_arm_pose_;
@@ -64,6 +65,7 @@ private:
 
   // Factors controlled by arm mode
   DvrkMode latest_dvrk_mode_ = DvrkMode::kPosition;
+  bool orientation_locked_ = false;
 
   // ROS Callbacks
   void onCurrentStateChange(const std_msgs::String& msg);
@@ -71,6 +73,7 @@ private:
   void onCurrentPositionChange(const geometry_msgs::PoseStamped& msg);
   void onSetInputCartesianImpedance(
       const cisst_msgs::prmCartesianImpedanceGains& msg);
+  void onSetDesiredPoseMovingCamera(const geometry_msgs::PoseStamped& msg);
 
   // State machine functions
   ArmMode getArmMode() const;
@@ -84,6 +87,7 @@ private:
   void activatePositionMode();
   void deactivateCartesianImpedance();
   void publishInputCartesianImpedance();
+  void unlockOrientation();
 
 };
 } // namespace rvinci_dvrk_haptics
