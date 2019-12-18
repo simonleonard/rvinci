@@ -49,8 +49,9 @@ add_library(rvinci
   src/gui_elements/waypoint_info_panel.cpp
   src/gui_elements/waypoints_control_panel.cpp
   src/gui_elements/preview_panel.cpp
-  ${MOC_FILES}
-        src/gui_elements/icon_button.cpp)
+  src/gui_elements/icon_button.cpp
+  src/rvinci_arm.cpp
+        ${MOC_FILES})
 
 target_link_libraries(rvinci
   ${catkin_LIBRARIES}

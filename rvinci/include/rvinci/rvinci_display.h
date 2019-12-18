@@ -44,19 +44,20 @@
 #include <OgreRenderTargetListener.h>
 #include <OgreVector3.h>
 #include <rviz/display.h>
+#include <rviz/properties/float_property.h>
 
 // Messages
 #include <rvinci_input_msg/rvinci_input.h>
-#include <rviz/properties/float_property.h>
+#include <sensor_msgs/JointState.h>
 
 // Local
+#include "rvinci/rvinci_arm.h"
 #include "rvinci/rvinci_gui.h"
 
 namespace Ogre {
 class SceneNode;
 class RenderWindow;
 class Camera;
-class Viewport;
 class Overlay;
 } // namespace Ogre
 
@@ -69,6 +70,16 @@ class RosTopicProperty;
 } // namespace rviz
 
 namespace rvinci {
+class CameraDeleter {
+public:
+  void operator()(Ogre::Camera* camera);
+};
+
+class ViewportDeleter {
+public:
+  void operator()(Ogre::Viewport* viewport);
+};
+
 class rvinciDisplay : public rviz::Display,
                       public Ogre::RenderTargetListener,
                       public Ogre::Camera::Listener {
@@ -80,6 +91,9 @@ class rvinciDisplay : public rviz::Display,
    * outputs for the interaction_cursor_3D to spawn two 3D cursors.
    */
   Q_OBJECT
+
+  using RvinciMessage = rvinci_input_msg::rvinci_input;
+
 public:
   //! A constructor
   /*!The rviz/Qt Render Widget is created here, and the Ogre
@@ -98,7 +112,7 @@ public:
   //! Override from Ogre::RenderTargetListener
   void postRenderTargetUpdate(const Ogre::RenderTargetEvent& evt) override;
 
-  // Used to apply the proper dispairity to each eye
+  // Used to apply the proper disparity to each eye
   void cameraPreRenderScene(Ogre::Camera* camera) override;
 
 protected:
@@ -111,79 +125,38 @@ protected:
   //! Called when plugin is disabled (by deselecting the check box).
   void onDisable() override;
   //! Contains primary logic for camera control.
-  /*!Camera position is either manually entered, or calculated by position
-   * of the da Vinci grips when the camera pedal is activated. A vector is
-   * calculated between the right and left grips. The translation of the
-   * midpoint of this vector is added to the camera node position, and the
-   * change in orientation of this vector is added to the orientation of the
-   * camera node.
-   */
-  void cameraUpdate();
   //! Called after constructor
   void onInitialize() override;
   //! Override from rviz display class.
   void update(float, float) override;
+
 protected Q_SLOTS:
-  virtual void changeInputScale();
+  virtual void onChangeInputScale();
   //! Resets or initializes camera and 3D cursor positions.
-  virtual void cameraReset();
+  virtual void onCameraReset();
   //! Sets up ROS subscribers and publishers
-  virtual void pubSubSetup();
+  virtual void onChangeInputTopic();
   //! Toggle for DVRK Gravity Compensation state
-  virtual void gravityCompensation();
+  virtual void onChangeGravityCompensation();
 
 private:
-  struct PerEyeData {
-    bool prev_grab = false;
-
-    Ogre::Camera* camera = nullptr;
-    Ogre::Viewport* viewport = nullptr;
-
-    Ogre::Vector3 input_pos{};
-    Ogre::Vector3 input_change{};
-
-    geometry_msgs::Pose cursor;
-    geometry_msgs::Pose pose_before_clutch;
-
-    ros::Publisher pub_robot_state;
-    ros::Publisher pub_gravity_comp;
-  };
-
-  RvinciGui gui_;
-
-  PerEyeData left_{};
-  PerEyeData right_{};
-
-  std::array<std::reference_wrapper<PerEyeData>, 2> eyes_ = {left_, right_};
-
-  bool camera_mode_ = false;
-  bool clutch_mode_ = false;
-
-  Ogre::SceneNode* camera_node_ = nullptr;
-  Ogre::Quaternion camera_quat_{};
-  Ogre::RenderWindow* window_ = nullptr;
-
-  Ogre::Vector3 initial_c_vect_{};
-  Ogre::Vector3 camera_ipd_{0.03, 0.0, 0.0};
-  Ogre::Vector3 camera_offset_{0.0, -3.0, 1.5};
-  Ogre::Vector3 camera_pos_{};
-
   ros::NodeHandle nh_;
   tf::TransformBroadcaster tf_broadcaster_;
+
+  RvinciGui gui_;
+  RvinciArm left_arm_;
+  RvinciArm right_arm_;
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
   ros::Subscriber input_sub_;
+  ros::Subscriber left_joint_state_sub_;
+  ros::Subscriber right_joint_state_sub_;
 #pragma clang diagnostic pop
-  ros::Publisher cursor_right_pub_;
-  ros::Publisher cursor_left_pub_;
-
-  ros::Publisher clutch_start_pub_;
-  ros::Publisher clutch_end_pub_;
 
   std::unique_ptr<rviz::RosTopicProperty> prop_ros_topic_;
   std::unique_ptr<rviz::VectorProperty> prop_cam_focus_;
   std::unique_ptr<rviz::QuaternionProperty> property_camera_rot_;
-  //  std::unique_ptr<rviz::BoolProperty> prop_manual_coords_;
   std::unique_ptr<rviz::VectorProperty> prop_camera_posit_;
   std::unique_ptr<rviz::VectorProperty> prop_input_scalar_;
   std::unique_ptr<rviz::BoolProperty> prop_gravity_comp_;
@@ -192,19 +165,41 @@ private:
 
   std::unique_ptr<rviz::RenderWidget> render_widget_;
 
-  //! Creates viewports and cameras.
-  void cameraSetup();
+  Ogre::SceneNode* camera_node_ = nullptr;
+
+  std::unique_ptr<Ogre::Camera, CameraDeleter> left_camera_;
+  std::unique_ptr<Ogre::Camera, CameraDeleter> right_camera_;
+  std::unique_ptr<Ogre::Viewport, ViewportDeleter> left_viewport_;
+  std::unique_ptr<Ogre::Viewport, ViewportDeleter> right_viewport_;
+
+  double latest_left_roll_ = 0.;
+  double latest_right_roll_ = 0.;
+  tf::Pose rod_wrt_world_{};
+  tf::Pose camera_wrt_dvrk_{};
+
+  bool got_first_message_ = false;
+  bool prev_clutch_ = false;
+  bool prev_camera_ = false;
+
   //! Called when input message received.
   /*!Contains primary input logic. Records input position and calculates change
    * in input position. Updates cursor position then sends data to camera
    * control and cursor publisher.
    */
-  void inputCallback(const rvinci_input_msg::rvinci_input::ConstPtr& r_input);
-  //! Publishes cursor position and grip state to interaction cursor 3D display
-  //! type.
-  void publishCursorUpdate(int left_grab, int right_grab);
-  //! Logic for grip state, used in interaction cursor 3D display type.
-  static int getAGrip(bool grab, PerEyeData& eye);
+  void inputCallback(const RvinciMessage::ConstPtr& rvinci_msg);
+
+  void updateClutching(const RvinciMessage& rvinci_msg);
+  void broadcastCameraTransform();
+
+  std::unique_ptr<Ogre::Camera, CameraDeleter>
+  createCamera(const std::string& name);
+  std::unique_ptr<Ogre::Viewport, ViewportDeleter>
+  createViewport(Ogre::Camera* camera, int z_order,
+                                 float left) const;
+
+  void resetCamera(Ogre::Camera* camera, const Ogre::Vector3& position) const;
+  tf::Pose getMtmPose(const rvinci_input_msg::Gripper& gripper_msg,
+                      const tf::Vector3& input_scale) const;
 };
 
 } // namespace rvinci
