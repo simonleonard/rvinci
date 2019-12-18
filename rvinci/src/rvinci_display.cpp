@@ -514,44 +514,6 @@ geometry_msgs::PoseStamped rvinciDisplay::getCameraHaptics(
   pose.pose.position.z /= input_scale.z();
 
   return context_->getTF2BufferPtr()->transform(pose, mtm_name + "_top_panel");
-
-  //  cisst_msgs::prmCartesianImpedanceGains gains;
-  //  gains.header.stamp = ros::Time::now();
-  //  gains.header.frame_id = mtm_name;
-  //
-  //  gains.ForcePosition.x = pose.pose.position.x;
-  //  gains.ForcePosition.y = pose.pose.position.y;
-  //  gains.ForcePosition.z = pose.pose.position.z;
-  //
-  //  gains.ForceOrientation = pose.pose.orientation;
-  //
-  //  // The rod axis is z, for some reason. I would expect x but z is the one
-  //  that
-  //  // gives correct results.
-  //  gains.PosStiffPos.z = gains.PosStiffNeg.z = -200.;
-  //  gains.PosDampingPos.z = gains.PosDampingNeg.z = -2.;
-  //
-  //  // Roll orientation stiffness is unusable. For orientation we have to put
-  //  an
-  //  // axis on roll so we can exclude it from stiffness, but we still want the
-  //  // other two axes to have haptics. This code does swing twist
-  //  decomposition
-  //  // about the z axis (which is the roll axis) and keeps only the swing,
-  //  i.e.
-  //  // the part that does not rotate about the z axis.
-  //  // See https://stackoverflow.com/a/22401169
-  //  // Note the math for projecting onto the z axis is easy, so a few steps
-  //  can
-  //  // be skipped
-  //  tf::Quaternion rotation;
-  //  tf::quaternionMsgToTF(pose.pose.orientation, rotation);
-  //  tf::Quaternion twist(0., 0., rotation.z(), rotation.w());
-  //  twist.normalize(); // Important!
-  //  tf::quaternionTFToMsg(rotation * twist.inverse(),
-  //  gains.TorqueOrientation); gains.OriStiffPos.x = gains.OriStiffNeg.x =
-  //  -0.2; gains.OriStiffPos.y = gains.OriStiffNeg.y = -0.2;
-  //  gains.OriDampingNeg.z = gains.OriDampingPos.z = -0.01;
-  //  return gains;
 }
 
 } // namespace rvinci
