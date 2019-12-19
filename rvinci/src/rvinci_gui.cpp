@@ -89,13 +89,27 @@ void RvinciGui::initialize(ros::NodeHandle& nh,
 }
 
 void RvinciGui::show() {
-  assert(overlay_);
-  overlay_->show();
+  if (overlay_) overlay_->show();
+
+  Ogre::Overlay* left_cursor =
+      Ogre::OverlayManager::getSingleton().getByName("RVinciCursorLeft");
+  if (left_cursor) left_cursor->show();
+
+  Ogre::Overlay* right_cursor =
+      Ogre::OverlayManager::getSingleton().getByName("RVinciCursorRight");
+  if (right_cursor) right_cursor->show();
 }
 
 void RvinciGui::hide() {
-  assert(overlay_);
-  overlay_->hide();
+  if (overlay_) overlay_->hide();
+
+  Ogre::Overlay* left_cursor =
+      Ogre::OverlayManager::getSingleton().getByName("RVinciCursorLeft");
+  if (left_cursor) left_cursor->hide();
+
+  Ogre::Overlay* right_cursor =
+      Ogre::OverlayManager::getSingleton().getByName("RVinciCursorRight");
+  if (right_cursor) right_cursor->hide();
 }
 
 void RvinciGui::onPreviewPositionChange(
@@ -174,9 +188,15 @@ void RvinciGui::changeInputScale(Ogre::Vector3 input_scale) {
 }
 
 void RvinciGui::setOffset(double offset) {
-  if (!overlay_) return;
+  if (overlay_) overlay_->setScroll(offset, 0.);
 
-  overlay_->setScroll(offset, 0.);
+  Ogre::Overlay* left_cursor =
+      Ogre::OverlayManager::getSingleton().getByName("RVinciCursorLeft");
+  if (left_cursor) left_cursor->setScroll(offset, 0.);
+
+  Ogre::Overlay* right_cursor =
+      Ogre::OverlayManager::getSingleton().getByName("RVinciCursorRight");
+  if (right_cursor) right_cursor->setScroll(offset, 0.);
 }
 
 } // namespace rvinci
