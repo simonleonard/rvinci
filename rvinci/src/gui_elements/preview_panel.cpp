@@ -150,8 +150,8 @@ void PreviewPanel::setPreviewButtonPlaying(bool is_playing) {
 }
 
 void PreviewPanel::setExecuteAbortButtonExecuting(bool is_executing) {
-  execute_button_.setIcon(is_executing ? "Template/UploadIcon"
-                                       : "Template/StopIcon");
+  execute_button_.setIcon(is_executing ? "Template/StopIcon"
+                                       : "Template/UploadIcon");
 }
 
 void PreviewPanel::setPreviewEnabled(bool preview_enabled) {
