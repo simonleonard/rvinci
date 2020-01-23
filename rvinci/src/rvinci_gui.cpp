@@ -10,7 +10,7 @@
 // Messages
 #include <nasa_interface_msgs/AddWaypoint.h>
 #include <nasa_interface_msgs/AddWaypointFromPath.h>
-#include <nasa_interface_msgs/DeleteWaypoint.h>
+#include <nasa_interface_msgs/WaypointId.h>
 
 namespace rvinci {
 namespace {
@@ -49,7 +49,7 @@ void RvinciGui::initialize(ros::NodeHandle& nh,
           "waypoints/add_from_path", kQueueSize, false);
   add_waypoint_at_end_pub_ = nh.advertise<nasa_interface_msgs::AddWaypoint>(
       "waypoints/add", kQueueSize, false);
-  delete_waypoint_pub_ = nh.advertise<nasa_interface_msgs::DeleteWaypoint>(
+  delete_waypoint_pub_ = nh.advertise<nasa_interface_msgs::WaypointId>(
       "waypoints/delete", kQueueSize, false);
 
   // External
@@ -167,7 +167,7 @@ void RvinciGui::onAddWaypointAtEndClick(const std_msgs::Empty&) {
 }
 
 void RvinciGui::onDeleteWaypointClick(const std_msgs::Empty&) {
-  nasa_interface_msgs::DeleteWaypoint msg;
+  nasa_interface_msgs::WaypointId msg;
   msg.header.stamp = ros::Time::now();
   msg.waypoint_id = latest_waypoint_->waypoint.waypoint_id;
 
